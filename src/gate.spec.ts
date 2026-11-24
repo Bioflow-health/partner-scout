@@ -185,4 +185,41 @@ describe("checkDraft", () => {
       ],
     });
   });
+
+  test.each([
+    { mark: "a question mark", videoTitle: "Is n8n worth it?" },
+    { mark: "an em dash", videoTitle: "Clipping streams—the easy way" },
+    { mark: "a banned word", videoTitle: "My EPIC posting setup" },
+    { mark: "an AI tell", videoTitle: "This game-changer posts for me" },
+  ])("ignores $mark inside the video title", ({ videoTitle }) => {
+    const text = CLEAN.replace(TITLE, videoTitle);
+
+    expect(checkDraft({ text, videoTitle }, config)).toEqual({
+      pass: true,
+      failures: [],
+    });
+  });
+
+  test("counts the video title's words toward the word limit", () => {
+    const longTitle =
+      "How I schedule a full month of short clips for every platform in one quiet afternoon with two simple tools";
+    const draftWordsWithLongTitle = 53;
+    const text = [
+      CLEAN.replace(TITLE, longTitle),
+      ...Array.from(
+        { length: SPEC_MAX_WORDS + 1 - draftWordsWithLongTitle },
+        () => "more",
+      ),
+    ].join(" ");
+
+    expect(checkDraft({ text, videoTitle: longTitle }, config)).toEqual({
+      pass: false,
+      failures: [
+        {
+          rule: "too-long",
+          detail: `words: ${SPEC_MAX_WORDS + 1}, max ${SPEC_MAX_WORDS}`,
+        },
+      ],
+    });
+  });
 });
