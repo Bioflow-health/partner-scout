@@ -1,33 +1,12 @@
 import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { loadPartners, loadSearchTerms } from "./config";
 import { filterCandidates, PARTNER_BAND } from "./filter";
 import { rankByMomentum } from "./score";
-import type { ChannelId } from "./types";
 import { fetchRun, toCandidates } from "./youtube";
 import type { RawRun } from "./youtube";
 
 const CACHE_DIR = "out/cache";
 const TOP = 10;
-
-const readLines = async (path: string) =>
-  (await readFile(path, "utf8"))
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line !== "" && !line.startsWith("#"));
-
-const loadSearchTerms = async () =>
-  (await readLines("config/search-terms.txt")).map((line) => {
-    const [phrase = "", topic = phrase] = line
-      .split("|")
-      .map((part) => part.trim());
-    return { phrase, topic };
-  });
-
-const loadPartners = async (): Promise<ReadonlySet<ChannelId>> => {
-  const [, ...rows] = await readLines("config/partners.csv");
-  return new Set(
-    rows.map((row) => (row.split(",")[0] ?? "").trim() as ChannelId),
-  );
-};
 
 const newestCachePath = async () => {
   const files = (await readdir(CACHE_DIR).catch(() => [])).filter((file) =>

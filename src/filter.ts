@@ -1,3 +1,4 @@
+import { phrasePattern } from "./text";
 import type { Candidate, ChannelId } from "./types";
 
 export type SizeBand = { min: number; max: number };
@@ -26,12 +27,8 @@ export type FilterOptions = {
   topics: ReadonlyMap<string, string>;
 };
 
-const escapeRegExp = (text: string) =>
-  text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
 const mentionsTopic = (candidate: Candidate, topic: string) => {
-  const words = topic.trim().split(/\s+/).map(escapeRegExp);
-  const phrase = new RegExp(`\\b${words.join("\\s+")}\\b`, "i");
+  const phrase = phrasePattern(topic);
   return (
     phrase.test(candidate.videoTitle) || phrase.test(candidate.description)
   );

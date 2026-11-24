@@ -1,0 +1,25 @@
+# AI-writing tells the code gate rejects in a DM.
+# One JavaScript regular expression per line, matched in any case.
+
+# Stock openers
+\bI hope (this|my) (message|email|note|DM) finds you well\b
+\bI wanted to reach out\b
+\bI(?: am|'m|’m) reaching out\b
+\bI came across your (channel|profile|content|video)\b
+
+# Inflated words
+\bgame[- ]chang(er|ers|ing)\b
+\bunlock(s|ed|ing)?\b
+\bunleash(es|ed|ing)?\b
+\bsupercharg(e|es|ed|ing)\b
+\bseamless(ly)?\b
+\belevate(s|d)?\b
+\bdelve\b
+\btapestry\b
+\bin today's fast-paced\b
+
+# "Not just X, but Y"
+\bnot (just|only)\b[^.?!]*\bbut( also)?\b
+
+# Tidy groups of three
+\b\w+, \w+,? (and|or) \w+\b

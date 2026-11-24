@@ -1,0 +1,17 @@
+# Hype words the code gate rejects in a DM.
+# One word or phrase per line, matched as whole words in any case.
+amazing
+awesome
+incredible
+insane
+epic
+revolutionary
+mind-blowing
+crushing it
+killer
+massive
+skyrocket
+guaranteed
+ultimate
+next level
+10x
