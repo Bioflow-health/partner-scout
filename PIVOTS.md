@@ -2,7 +2,7 @@
 
 The pressure-test log. Each entry: objective, hypothesis, result, change. Each pivot is one commit whose message says why.
 
-Unless an entry says otherwise, every result below scores the same data: `out/cache/2026-11-24.json` (one live run, 509 quota units), replayed with `npm run scout -- --cached`.
+Unless an entry says otherwise, every result below scores the same data: `out/cache/2026-11-24.json` (one live run, 509 quota units), replayed with `npm run scout -- --cached out/cache/2026-11-24.json`. To reproduce entries 1 to 3 exactly, use `config/search-terms.txt` as of commit `460c5fd`. Pivot 3 retired two of those phrases, and a phrase missing from the config falls back to the whole-phrase rule.
 
 ## 0. The acceptance bar (set before any pivot)
 
@@ -74,3 +74,48 @@ Unless an entry says otherwise, every result below scores the same data: `out/ca
 - So the limit is the intake: what the search phrases bring back, not how the scout ranks it.
 
 **Change:** pivot 3, one intake change.
+
+## 4. Pivot 3: retarget the two coding phrases at content workflows
+
+**Hypothesis:** the coding phrases, not the ranking, filled the list with coding tutorials. Pointing those two phrases at content workflows, with the same topic keywords, brings back creators who teach the workflows Blotato serves.
+
+**Change:** `claude code tutorial` became `claude code social media automation | claude code`, and `mcp server tutorial` became `mcp social media posting | mcp`. The other three terms are unchanged.
+
+**Run:** one new live run of **509 quota units** (5 searches at 100 units each, 5 videos.list pages and 4 channels.list pages). It's saved to `out/cache/2026-11-24-2.json`, and the baseline cache is kept. These are new videos, so this result doesn't share data with entries 1 to 3.
+
+**Result:** 250 videos found, 28 channels kept, 176 videos dropped as outside the band. **Fails the bar, 4 of 10 (two of the four are borderline).**
+
+| #   | Channel                      | Subscribers | Views   | Size | On-topic tutorial                                                                              | 2,000+ views | Verdict |
+| --- | ---------------------------- | ----------- | ------- | ---- | ---------------------------------------------------------------------------------------------- | ------------ | ------- |
+| 1   | Ashton Voss                  | 3,280       | 110,187 | yes  | yes: auto-clips streams into vertical clips for TikTok, Reels and Shorts with agent skills     | yes          | pass    |
+| 2   | George Clicks                | 11,000      | 219,949 | yes  | borderline yes: how to build a faceless YouTube channel with an AI agent, told as a case study | yes          | pass    |
+| 3   | AI Hub for Students (Telugu) | 4,480       | 71,099  | yes  | borderline yes: the same n8n course as in pivot 2                                              | yes          | pass    |
+| 4   | Jacksons AI                  | 76,500      | 237,047 | yes  | yes: a tutorial on making viral 3D animation videos with AI                                    | yes          | pass    |
+| 5   | Nick Automates               | 66,400      | 175,295 | yes  | no: a list of AI plugins                                                                       | yes          | fail    |
+| 6   | Zinho Automates              | 87,900      | 46,116  | yes  | no: building and deploying an app                                                              | yes          | fail    |
+| 7   | Manish Digital Academy       | 41,700      | 18,295  | yes  | no: a WhatsApp reply and lead-capture bot, not content                                         | yes          | fail    |
+| 8   | Favikon                      | 1,260       | 286     | yes  | yes: writing LinkedIn posts from real post data over MCP                                       | no           | fail    |
+| 9   | SaasTuto SaaS & WP vids      | 7,800       | 1,532   | yes  | no: installing n8n on a server                                                                 | no           | fail    |
+| 10  | Coding Dialect               | 2,600       | 333     | yes  | no: a short explainer                                                                          | no           | fail    |
+
+- The retargeting worked where it was applied. "claude code social media automation" supplied 3 of the 4 passes (#1, #2, #4). In pivot 2, "claude code tutorial" supplied none.
+- "mcp social media posting" finds on-topic videos, but small ones. Its best is #8, with 286 views.
+- "n8n automation tutorial" wasn't changed, and it fills 4 of the ten with general n8n courses. Only 1 of them passes.
+- "blotato" is the most on-topic term. It kept 9 channels, but none ranks above #11, because their videos have few views next to their subscriber counts and momentum on a single video ranks them down.
+- Kept channels fell from 46 to 28, because the new phrases pull in bigger channels: 176 of 250 videos fall outside the band.
+
+**Change:** none. The pressure test stops after pivot 3, as planned.
+
+## Where it stands
+
+**The bar is not met.** The best list is pivot 3's, with 4 of 10. Across H1 and the three pivots, the count went 0, 0, 1, then 4 of 10.
+
+What the evidence points to next (not done):
+
+1. Retarget "n8n automation tutorial" at content workflows, the same way pivot 3 retargeted the other two phrases. It now supplies 4 of the ten and only 1 pass.
+2. Score a creator on more than one video: the median momentum over their last N videos, or 2+ on-topic videos in 90 days. That would lift consistent on-topic creators like the "blotato" results, which single-video momentum ranks low.
+
+**Worth a manual look (for the outcomes log):**
+
+- **Aaghaz** (25,700 subscribers). The channel sells social content automation. The found video was n8n news, so it failed the topic check. https://youtu.be/iQIrOBjp52c
+- **Dr. Firas** (41,800 subscribers). A French video on editing with an AI agent and publishing everywhere with Blotato, with 2,246 views. It ranked #28 in pivot 2. https://youtu.be/vhEC7rFPjJk

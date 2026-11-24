@@ -1,8 +1,8 @@
 # search phrase | topic keyword
 # The API searches for the phrase. A found video is kept only if its title or
 # description names the topic keyword. Without "| keyword", the whole phrase is used.
-claude code tutorial | claude code
-mcp server tutorial | mcp
+claude code social media automation | claude code
+mcp social media posting | mcp
 n8n automation tutorial | n8n
 social media automation | social media automation
 blotato | blotato
