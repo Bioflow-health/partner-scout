@@ -16,6 +16,8 @@ Unless an entry says otherwise, every result below scores the same data: `out/ca
 2. **On-topic tutorial:** the found video is a how-to or walkthrough (not news, a reaction or an ad). Its subject is creating, repurposing, scheduling or automating social or marketing content, or building that kind of workflow with the tools Blotato plugs into (n8n, Make, Claude, MCP). A general coding tutorial doesn't count.
 3. **Plausibly 10 referrals a month:** the found video has at least 2,000 views. This is a low-confidence proxy. It assumes about 2% of viewers click a partner link and about 25% of those sign up, so 10 customers takes roughly 2,000 views of relevant content a month. The outcomes log will replace this guess with real numbers.
 
+> **Note added after the pivot 3 review (no results re-scored):** the 2,000-view proxy is optimistic, and it stays as the v1 screen. Conservative assumptions (1% of viewers click, 10% of those pay) imply about 10,000 views a month for 10 customers. The outcomes log replaces both estimates with measured rates.
+
 ## 1. H1: momentum on a single recent video
 
 **Hypothesis:** momentum on one recent video (views / subscribers, published in the last 30 days) finds good partner candidates.
@@ -114,6 +116,7 @@ What the evidence points to next (not done):
 
 1. Retarget "n8n automation tutorial" at content workflows, the same way pivot 3 retargeted the other two phrases. It now supplies 4 of the ten and only 1 pass.
 2. Score a creator on more than one video: the median momentum over their last N videos, or 2+ on-topic videos in 90 days. That would lift consistent on-topic creators like the "blotato" results, which single-video momentum ranks low.
+3. Test a higher subscriber cap. The 100K cap drops many of the creators pivot 1 recovered: after pivot 1, 38 of the 84 kept channels with 1K+ subscribers were above 100K.
 
 **Worth a manual look (for the outcomes log):**
 
