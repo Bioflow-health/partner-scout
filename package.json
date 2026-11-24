@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "scout": "tsx src/cli.ts"
+    "scout": "tsx src/cli.ts",
+    "shortlist": "tsx src/cli.ts shortlist"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

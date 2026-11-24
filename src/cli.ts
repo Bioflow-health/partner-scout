@@ -1,10 +1,20 @@
 import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
-import { loadPartners, loadSearchTerms } from "./config";
+import {
+  loadAiTells,
+  loadBannedWords,
+  loadPartners,
+  loadSearchTerms,
+} from "./config";
 import { filterCandidates, PARTNER_BAND } from "./filter";
+import { checkDraft } from "./gate";
 import { rankByMomentum } from "./score";
+import type { Scored } from "./score";
+import { entryStatus, renderShortlist } from "./shortlist";
+import type { DraftEntry, ShortlistRow } from "./shortlist";
 import { fetchRun, toCandidates } from "./youtube";
 import type { RawRun } from "./youtube";
 
+const OUT_DIR = "out";
 const CACHE_DIR = "out/cache";
 const TOP = 10;
 
@@ -62,7 +72,71 @@ const loadLiveRun = async (phrases: readonly string[]) => {
 
 const formatCount = (value: number) => value.toLocaleString("en-US");
 
+const today = () => new Date().toLocaleDateString("en-CA");
+
+type CandidatesFile = { source: string; entries: Scored[] };
+
+const readJson = async <T>(path: string): Promise<T | undefined> => {
+  try {
+    return JSON.parse(await readFile(path, "utf8")) as T;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
+};
+
+const writeShortlist = async (date: string) => {
+  const candidates = await readJson<CandidatesFile>(
+    `${OUT_DIR}/candidates-${date}.json`,
+  );
+  if (!candidates) {
+    throw new Error(
+      `No ${OUT_DIR}/candidates-${date}.json. Run npm run scout first.`,
+    );
+  }
+  const drafts = await readJson<{ entries: DraftEntry[] }>(
+    `${OUT_DIR}/drafts-${date}.json`,
+  );
+  const gateConfig = {
+    bannedWords: await loadBannedWords(),
+    aiTells: await loadAiTells(),
+  };
+  const rows: ShortlistRow[] = candidates.entries.map((candidate, index) => {
+    const entry = drafts?.entries.find((e) => e.videoId === candidate.videoId);
+    return {
+      rank: index + 1,
+      candidate,
+      entry,
+      gates: (entry?.attempts ?? []).map((attempt) =>
+        checkDraft(
+          { text: attempt.draft, videoTitle: candidate.videoTitle },
+          gateConfig,
+        ),
+      ),
+    };
+  });
+  const path = `${OUT_DIR}/shortlist-${date}.md`;
+  await writeFile(path, renderShortlist(date, candidates.source, rows));
+
+  console.log(`\nShortlist: ${path}`);
+  for (const row of rows) {
+    const gate = row.gates.at(-1);
+    const failures =
+      gate && !gate.pass
+        ? ` | gate: ${gate.failures.map((f) => `${f.rule} (${f.detail})`).join("; ")}`
+        : "";
+    console.log(
+      `${row.rank}. ${row.candidate.channelTitle.trim()} | ${entryStatus(row.entry, row.gates)}${failures}`,
+    );
+  }
+};
+
 const main = async () => {
+  if (process.argv[2] === "shortlist") {
+    await writeShortlist(today());
+    return;
+  }
+
   const terms = await loadSearchTerms();
   const cachedFlag = process.argv.indexOf("--cached");
   const { run, source } =
@@ -104,6 +178,21 @@ const main = async () => {
       `   ${formatCount(entry.views)} views / ${formatCount(entry.subscribers ?? 0)} subscribers | https://youtu.be/${entry.videoId} | term: ${entry.searchTerm}`,
     );
   });
+
+  const date = today();
+  const candidatesFile: CandidatesFile = {
+    source,
+    entries: ranked.slice(0, TOP),
+  };
+  await mkdir(OUT_DIR, { recursive: true });
+  await writeFile(
+    `${OUT_DIR}/candidates-${date}.json`,
+    JSON.stringify(candidatesFile, null, 2),
+  );
+  console.log(
+    `\nCandidates for the writer: ${OUT_DIR}/candidates-${date}.json`,
+  );
+  await writeShortlist(date);
 };
 
 main().catch((error: unknown) => {
