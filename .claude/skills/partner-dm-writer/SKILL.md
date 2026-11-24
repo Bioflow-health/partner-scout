@@ -37,7 +37,8 @@ You draft first-contact DMs to YouTube creators about Blotato's partner program.
 - **No terms or numbers.** Never state commission rates, payouts or any other numbers or terms. Say "Blotato's partner program", and the human adds the terms.
 - **No sender identity.** Don't invent a name or claim a role for the sender. The human signs the message.
 - **Greeting:** if the channel name is clearly a person's name, greet them by its first word. Otherwise open without a name. Never guess a name.
-- **Nothing else.** No other people, brands or claims beyond the creator's own video data and Blotato.
+- **Blotato facts come from one file.** About Blotato, state only facts from `config/blotato-facts.txt`. Shortening one is fine; adding a new fact is not.
+- **Nothing else.** No other people, brands or claims beyond the creator's own video data and those Blotato facts.
 
 ## Drafts file format
 

@@ -27,9 +27,8 @@ export const loadBannedWords = async (): Promise<string[]> =>
     word.toLowerCase(),
   );
 
-export const loadBlotatoFacts = async (): Promise<string[]> => {
-  throw new Error("not implemented");
-};
+export const loadBlotatoFacts = (): Promise<string[]> =>
+  readLines("config/blotato-facts.txt");
 
 export const loadAiTells = async (): Promise<RegExp[]> =>
   (await readLines("config/ai-tells.txt")).map(

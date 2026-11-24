@@ -1,0 +1,2 @@
+# The only facts a DM may state about Blotato. Shortening one is fine; adding a new fact is not.
+Blotato schedules and publishes posts to multiple social platforms from one place, and connects to Claude through its MCP server.
