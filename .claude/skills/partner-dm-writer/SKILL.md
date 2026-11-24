@@ -13,7 +13,7 @@ You draft first-contact DMs to YouTube creators about Blotato's partner program.
 
 ## Steps
 
-1. For each candidate, in rank order, judge topic fit with check 2 from `PIVOTS.md`: the found video is a how-to or walkthrough (not news, a reaction or an ad), and its subject is creating, repurposing, scheduling or automating social or marketing content, or building that kind of workflow with n8n, Make, Claude or MCP. A general coding tutorial doesn't count. Judge from the title and description.
+1. For each candidate, in rank order, judge topic fit with check 2 from `PIVOTS.md`: the found video is a how-to or walkthrough (not news, a reaction or an ad), and its subject is creating, repurposing, scheduling or automating social or marketing content, or building that kind of workflow with n8n, Make, Claude or MCP. A general coding tutorial doesn't count. Judge from the title and description. A vendor or company channel demoing its own product is not a fit either: record `skip: vendor channel`.
 2. **Not a fit:** record `"fit": false` and a one-line reason that starts with `skip:`. Write no draft.
 3. **A fit:** record `"fit": true`, a one-line reason, and one draft as the first attempt.
 4. Write everything to `out/drafts-<date>.json` (format below). Then run `npm run shortlist`, which runs the code gate on every draft.

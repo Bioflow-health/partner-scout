@@ -122,3 +122,7 @@ What the evidence points to next (not done):
 
 - **Aaghaz** (25,700 subscribers). The channel sells social content automation. The found video was n8n news, so it failed the topic check. https://youtu.be/iQIrOBjp52c
 - **Dr. Firas** (41,800 subscribers). A French video on editing with an AI agent and publishing everywhere with Blotato, with 2,246 views. It ranked #28 in pivot 2. https://youtu.be/vhEC7rFPjJk
+
+## Drafting notes
+
+- After the P4 review, the writer skips vendor or company channels demoing their own product (`skip: vendor channel`). This is a drafting rule only: the bar and every score above are unchanged.
