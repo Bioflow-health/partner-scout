@@ -22,19 +22,30 @@ export type Draft = { text: string; videoTitle: string };
 const MAX_WORDS = 90;
 const EM_DASH = "—";
 
+const EMOJI = /[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu;
+
 const occurrences = (text: string, mark: string) => text.split(mark).length - 1;
+
+const coreTitle = (title: string) =>
+  (title.split(" | ")[0] ?? title)
+    .replace(EMOJI, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 export const checkDraft = (
   { text, videoTitle }: Draft,
   { bannedWords, aiTells }: GateConfig,
 ): GateResult => {
-  const title = videoTitle.trim();
-  const namesVideo =
-    title !== "" && text.toLowerCase().includes(title.toLowerCase());
-  const body =
-    title === ""
-      ? text
-      : text.replace(new RegExp(escapeRegExp(title), "gi"), " ");
+  const fullTitle = videoTitle.trim();
+  const core = coreTitle(fullTitle);
+  const titles = [...new Set([fullTitle, core])].filter((t) => t !== "");
+  const namesVideo = titles.some((t) =>
+    text.toLowerCase().includes(t.toLowerCase()),
+  );
+  const body = titles.reduce(
+    (remaining, t) => remaining.replace(new RegExp(escapeRegExp(t), "gi"), " "),
+    text,
+  );
   const words = text.split(/\s+/).filter(Boolean).length;
   const emDashes = occurrences(body, EM_DASH);
   const questions = occurrences(body, "?");
@@ -57,7 +68,10 @@ export const checkDraft = (
   if (!namesVideo) {
     failures.push({
       rule: "missing-video-title",
-      detail: `title not found: "${videoTitle}"`,
+      detail:
+        core === fullTitle
+          ? `title not found: "${videoTitle}"`
+          : `title not found: "${videoTitle}" or its core "${core}"`,
     });
   }
   if (questions !== 1) {
