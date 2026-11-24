@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { filterCandidates, PARTNER_BAND } from "./filter";
 import { rankByMomentum } from "./score";
 import type { ChannelId } from "./types";
@@ -29,17 +29,40 @@ const loadPartners = async (): Promise<ReadonlySet<ChannelId>> => {
   );
 };
 
-const loadCachedRun = async () => {
-  const files = (await readdir(CACHE_DIR).catch(() => []))
-    .filter((file) => file.endsWith(".json"))
-    .sort();
-  const latest = files.at(-1);
-  if (!latest) {
+const newestCachePath = async () => {
+  const files = (await readdir(CACHE_DIR).catch(() => [])).filter((file) =>
+    file.endsWith(".json"),
+  );
+  const dated = await Promise.all(
+    files.map(async (file) => ({
+      path: `${CACHE_DIR}/${file}`,
+      modified: (await stat(`${CACHE_DIR}/${file}`)).mtimeMs,
+    })),
+  );
+  const newest = dated.sort((a, b) => b.modified - a.modified)[0];
+  if (!newest) {
     throw new Error(`No cache in ${CACHE_DIR}/. Run once without --cached.`);
   }
-  const path = `${CACHE_DIR}/${latest}`;
+  return newest.path;
+};
+
+const loadCachedRun = async (requestedPath: string | undefined) => {
+  const path = requestedPath ?? (await newestCachePath());
   const run = JSON.parse(await readFile(path, "utf8")) as RawRun;
   return { run, source: `cache ${path} (0 new quota units)` };
+};
+
+const saveRun = async (run: RawRun, date: string) => {
+  await mkdir(CACHE_DIR, { recursive: true });
+  for (let copy = 1; ; copy += 1) {
+    const path = `${CACHE_DIR}/${date}${copy === 1 ? "" : `-${copy}`}.json`;
+    try {
+      await writeFile(path, JSON.stringify(run, null, 2), { flag: "wx" });
+      return path;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    }
+  }
 };
 
 const loadLiveRun = async (phrases: readonly string[]) => {
@@ -51,9 +74,7 @@ const loadLiveRun = async (phrases: readonly string[]) => {
   }
   const now = new Date();
   const run = await fetchRun(phrases, apiKey, now);
-  const path = `${CACHE_DIR}/${now.toLocaleDateString("en-CA")}.json`;
-  await mkdir(CACHE_DIR, { recursive: true });
-  await writeFile(path, JSON.stringify(run, null, 2));
+  const path = await saveRun(run, now.toLocaleDateString("en-CA"));
   return {
     run,
     source: `YouTube API (${run.unitsUsed} quota units), saved to ${path}`,
@@ -64,9 +85,11 @@ const formatCount = (value: number) => value.toLocaleString("en-US");
 
 const main = async () => {
   const terms = await loadSearchTerms();
-  const { run, source } = process.argv.includes("--cached")
-    ? await loadCachedRun()
-    : await loadLiveRun(terms.map((term) => term.phrase));
+  const cachedFlag = process.argv.indexOf("--cached");
+  const { run, source } =
+    cachedFlag === -1
+      ? await loadLiveRun(terms.map((term) => term.phrase))
+      : await loadCachedRun(process.argv[cachedFlag + 1]);
 
   const candidates = toCandidates(run);
   const { kept, dropped } = filterCandidates(candidates, {
