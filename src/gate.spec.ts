@@ -222,4 +222,55 @@ describe("checkDraft", () => {
       ],
     });
   });
+
+  describe("core title", () => {
+    const COURSE_TITLE =
+      "🔥AI Agents & Automations Full Course (Telugu) | n8n Basic to Advanced | 11+ Hours";
+    const COURSE_CORE = "AI Agents & Automations Full Course (Telugu)";
+
+    test("passes a draft that names only the core: the text before the first ' | ', without emoji", () => {
+      const text = CLEAN.replace(TITLE, COURSE_CORE);
+
+      expect(checkDraft({ text, videoTitle: COURSE_TITLE }, config)).toEqual({
+        pass: true,
+        failures: [],
+      });
+    });
+
+    test("finds the core of a title with no ' | ' by removing its emoji", () => {
+      const text = CLEAN.replace(TITLE, "What Is n8n? Build Workflows");
+
+      expect(
+        checkDraft(
+          { text, videoTitle: "🤖 What Is n8n? ⚡ Build Workflows" },
+          config,
+        ),
+      ).toEqual({ pass: true, failures: [] });
+    });
+
+    test("ignores a question mark inside the core title", () => {
+      const text = CLEAN.replace(TITLE, "Is n8n worth it?");
+
+      expect(
+        checkDraft(
+          { text, videoTitle: "Is n8n worth it? | A full walkthrough" },
+          config,
+        ),
+      ).toEqual({ pass: true, failures: [] });
+    });
+
+    test("fails a draft that names only part of the core, and quotes both forms", () => {
+      const text = CLEAN.replace(TITLE, "AI Agents");
+
+      expect(checkDraft({ text, videoTitle: COURSE_TITLE }, config)).toEqual({
+        pass: false,
+        failures: [
+          {
+            rule: "missing-video-title",
+            detail: `title not found: "${COURSE_TITLE}" or its core "${COURSE_CORE}"`,
+          },
+        ],
+      });
+    });
+  });
 });
