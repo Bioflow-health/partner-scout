@@ -82,7 +82,7 @@ npm run scout -- --cached out/cache/2026-11-24.json
 Open Claude Code in this folder and ask it to use the `partner-dm-writer` skill on today's candidates. The skill:
 
 1. Judges each creator's topic fit and skips the ones that don't fit, with a reason. Vendors demoing their own product are skipped too.
-2. Drafts one DM per fit. Each one names the video, mentions one specific detail in neutral words, asks one question, and stays at 90 words or fewer. It doesn't praise the creator and doesn't pretend the sender watched the video. About Blotato it says only what `config/blotato-facts.txt` says.
+2. Drafts one DM per fit. Each one names the video, mentions one specific detail in neutral words, asks one question, and stays at 90 words or fewer. It doesn't praise the creator and doesn't pretend the sender watched the video. About Blotato it says only what `config/blotato-facts.txt` says, with at most one clause that applies it to the creator's own work.
 3. Runs `npm run shortlist`, which applies the code gate to every draft.
 4. Sends each draft that passed the gate to the `dm-checker` agent.
 5. Revises a failed draft once. A second failure stays blocked for you.
