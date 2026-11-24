@@ -81,7 +81,7 @@ const renderRow = ({ rank, candidate, entry, gates }: ShortlistRow) => {
     `- Channel: https://www.youtube.com/channel/${candidate.channelId}`,
     `- Video: [${candidate.videoTitle}](https://youtu.be/${candidate.videoId})`,
     `- Momentum: ${candidate.momentum.toFixed(2)} = ${formatCount(candidate.views)} views / ${formatCount(candidate.subscribers ?? 0)} subscribers (term: ${candidate.searchTerm})`,
-    `- Fit: ${!entry ? "not judged yet" : entry.fit ? `yes. ${entry.reason}` : `skip. ${entry.reason}`}`,
+    `- Fit: ${!entry ? "not judged yet" : entry.fit ? `yes. ${entry.reason}` : `skip. ${entry.reason.replace(/^skip:\s*/i, "")}`}`,
   ];
 
   const attempts = entry?.attempts ?? [];
