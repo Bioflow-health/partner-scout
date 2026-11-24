@@ -12,13 +12,14 @@ Partner Scout finds YouTube creators worth a personal partnership message and dr
 | 4 Draft   | Judge topic fit, then a personal DM per fit that names their video                                                                             | `.claude/skills/partner-dm-writer/`           |
 | 5 Check   | A code gate, then a separate checker agent (smaller model) that runs the anti-slop-humanizer; one revision on failure                          | `src/gate.ts`, `.claude/agents/dm-checker.md` |
 | 6 Approve | A human marks each ready draft approve or skip, then sends it by hand                                                                          | `out/shortlist-<date>.md`                     |
-| 7 Learn   | A human logs replies, sign-ups and referrals; a summary shows what to tune (planned)                                                           | `config/outcomes.csv`, `npm run learn`        |
+| 7 Learn   | A human logs each stage a creator reaches; a summary shows counts, conversions, the weakest step and results by search term                    | `config/outcomes.csv`, `npm run learn`        |
 
 ## Commands
 
 - `npm run scout`: live run. Searches YouTube, saves the raw responses to `out/cache/<date>.json` (never overwritten; a second run that day gets `-2`), prints the ranked top 10, and writes `out/candidates-<date>.json` and `out/shortlist-<date>.md`.
 - `npm run scout -- --cached [path]`: re-scores the newest cache file, or the one named. No API calls, no quota.
 - `npm run shortlist`: re-renders the shortlist from `out/drafts-<date>.json` and runs the code gate on every draft. No API calls.
+- `npm run learn`: summarizes `config/outcomes.csv` (rows with channel_id `EXAMPLE` are ignored). No API calls.
 - `npm test`, `npm run typecheck`, `npm run lint`, `npm run format:check`: all must pass before a commit.
 
 ## Secrets and quota

@@ -7,12 +7,14 @@ import {
 } from "./config";
 import { filterCandidates, PARTNER_BAND } from "./filter";
 import { checkDraft } from "./gate";
+import { parseOutcomes, summarizeOutcomes } from "./learn";
 import { rankByMomentum } from "./score";
 import type { Scored } from "./score";
 import { entryStatus, renderShortlist } from "./shortlist";
 import type { DraftEntry, ShortlistRow } from "./shortlist";
 import { fetchRun, toCandidates } from "./youtube";
 import type { RawRun } from "./youtube";
+import type { ChannelId } from "./types";
 
 const OUT_DIR = "out";
 const CACHE_DIR = "out/cache";
@@ -131,9 +133,64 @@ const writeShortlist = async (date: string) => {
   }
 };
 
+const OUTCOMES_PATH = "config/outcomes.csv";
+
+const loadTermByChannel = async () => {
+  const files = (await readdir(OUT_DIR).catch(() => []))
+    .filter((file) => /^candidates-.*\.json$/.test(file))
+    .sort();
+  const termByChannel = new Map<ChannelId, string>();
+  for (const file of files) {
+    const candidates = await readJson<CandidatesFile>(`${OUT_DIR}/${file}`);
+    for (const entry of candidates?.entries ?? []) {
+      termByChannel.set(entry.channelId, entry.searchTerm);
+    }
+  }
+  return termByChannel;
+};
+
+const percent = (rate: number | null) =>
+  rate === null ? "n/a" : `${Math.round(rate * 100)}%`;
+
+const learn = async () => {
+  const rows = parseOutcomes(await readFile(OUTCOMES_PATH, "utf8"));
+  const summary = summarizeOutcomes(rows, await loadTermByChannel());
+
+  console.log(
+    `Outcomes in ${OUTCOMES_PATH}: ${summary.channels} channels (example rows ignored: ${summary.examplesIgnored})\n`,
+  );
+  console.log(
+    `${"Stage".padEnd(16)}${"Reached".padStart(8)}   From the stage before`,
+  );
+  summary.reached.forEach(({ stage, channels }, index) => {
+    const conversion = summary.conversions[index - 1];
+    console.log(
+      `${stage.padEnd(16)}${String(channels).padStart(8)}   ${conversion ? percent(conversion.rate) : ""}`,
+    );
+  });
+
+  const weakest = summary.weakestStep;
+  console.log(
+    `\nWeakest step: ${weakest ? `${weakest.from} to ${weakest.to} (${percent(weakest.rate)}). Tune this first.` : "not enough data yet"}`,
+  );
+
+  console.log("\nBy search term (channels that reached each stage):");
+  if (summary.byTerm.length === 0) console.log("  none yet");
+  for (const { term, reached } of summary.byTerm) {
+    const stages = Object.entries(reached)
+      .map(([stage, count]) => `${stage} ${count}`)
+      .join(", ");
+    console.log(`  ${term}: ${stages}`);
+  }
+};
+
 const main = async () => {
   if (process.argv[2] === "shortlist") {
     await writeShortlist(today());
+    return;
+  }
+  if (process.argv[2] === "learn") {
+    await learn();
     return;
   }
 
