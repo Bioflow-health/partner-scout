@@ -47,3 +47,30 @@ Unless an entry says otherwise, every result below scores the same data: `out/ca
 - **The top 10 still fails, 0 of 10.** All ten have 50 or fewer subscribers, and #1 is unchanged (4 subscribers, momentum 305). Fixing the filter put real creators back in the pool, but views / subscribers still ranks the tiniest channels first.
 
 **Change:** pivot 2, the size band.
+
+## 3. Pivot 2: a 1K–100K subscriber band
+
+**Hypothesis:** with real creators back in the pool, a subscriber band stops one viral video on a tiny channel from topping the list. The top 10 then becomes channels worth messaging.
+
+**Change:** the scout uses `PARTNER_BAND` (1,000 to 100,000 subscribers, edges included) instead of no limit.
+
+**Result (same 250 videos):** 46 channels kept, and 164 videos dropped as outside the band. **Fails the bar, 1 of 10.**
+
+| #   | Channel                      | Subscribers | Views   | Size | On-topic tutorial                                                                                                             | 2,000+ views | Verdict |
+| --- | ---------------------------- | ----------- | ------- | ---- | ----------------------------------------------------------------------------------------------------------------------------- | ------------ | ------- |
+| 1   | AI Hub for Students (Telugu) | 4,470       | 70,940  | yes  | borderline yes: an n8n course whose projects include a LinkedIn auto-post scheduler and a LinkedIn and YouTube content engine | yes          | pass    |
+| 2   | Nick Automates               | 66,400      | 175,054 | yes  | no: a list of AI plugins, not a content workflow                                                                              | yes          | fail    |
+| 3   | AI Career Lab                | 8,770       | 18,294  | yes  | no: an MCP coding project (task manager)                                                                                      | yes          | fail    |
+| 4   | Matteo AI                    | 11,100      | 21,870  | yes  | no: vibe-coding a business app                                                                                                | yes          | fail    |
+| 5   | Aaghaz                       | 25,700      | 43,071  | yes  | no: n8n product news. The channel itself sells social content automation, so it's worth a manual look                         | yes          | fail    |
+| 6   | Easy AI Coding               | 11,100      | 18,347  | yes  | no: building a task app                                                                                                       | yes          | fail    |
+| 7   | Tony Lotis                   | 12,400      | 18,758  | yes  | no: a general first AI agent (French)                                                                                         | yes          | fail    |
+| 8   | AI with Thiru                | 55,800      | 78,460  | yes  | no: running a coding agent for free with local models                                                                         | yes          | fail    |
+| 9   | ReachMora                    | 73,000      | 86,444  | yes  | no: using a coding agent for free                                                                                             | yes          | fail    |
+| 10  | Zinho Automates              | 87,900      | 91,111  | yes  | no: web design with a coding agent                                                                                            | yes          | fail    |
+
+- Size and reach now hold for all ten. Topic is what fails: 8 of the ten come from "claude code tutorial" (7) and "mcp server tutorial" (1), and those phrases bring back general coding tutorials.
+- Re-ranking can't fix it. Of the 46 channels in the band, only 2 videos pass all three checks: #1 above, and a French video on editing with an AI agent and publishing everywhere with Blotato (2,246 views, 41,800 subscribers, ranked #28). Most on-topic content videos are small. "Hermes Agent Creates & Posts My Reels Automatically!" has 1,423 views on 11,300 subscribers and ranks #24.
+- So the limit is the intake: what the search phrases bring back, not how the scout ranks it.
+
+**Change:** pivot 3, one intake change.

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { makeCandidate } from "./fixtures";
-import { filterCandidates, NO_SIZE_LIMIT } from "./filter";
+import { filterCandidates, NO_SIZE_LIMIT, PARTNER_BAND } from "./filter";
 import type { FilterOptions } from "./filter";
 
 const noLimits: FilterOptions = {
@@ -39,6 +39,22 @@ describe("filterCandidates", () => {
     expect(filterCandidates([candidate], noLimits)).toEqual({
       kept: [],
       dropped: [{ candidate, reason: "no-subscriber-count" }],
+    });
+  });
+
+  test("the partner band keeps channels with 1,000 to 100,000 subscribers, edges included", () => {
+    const below = makeCandidate("a", { subscribers: 999 });
+    const atMin = makeCandidate("b", { subscribers: 1_000 });
+    const atMax = makeCandidate("c", { subscribers: 100_000 });
+    const above = makeCandidate("d", { subscribers: 100_001 });
+    const options = { ...noLimits, band: PARTNER_BAND };
+
+    expect(filterCandidates([below, atMin, atMax, above], options)).toEqual({
+      kept: [atMin, atMax],
+      dropped: [
+        { candidate: below, reason: "outside-size-band" },
+        { candidate: above, reason: "outside-size-band" },
+      ],
     });
   });
 

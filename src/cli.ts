@@ -1,5 +1,5 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { filterCandidates, NO_SIZE_LIMIT } from "./filter";
+import { filterCandidates, PARTNER_BAND } from "./filter";
 import { rankByMomentum } from "./score";
 import type { ChannelId } from "./types";
 import { fetchRun, toCandidates } from "./youtube";
@@ -71,7 +71,7 @@ const main = async () => {
   const candidates = toCandidates(run);
   const { kept, dropped } = filterCandidates(candidates, {
     partners: await loadPartners(),
-    band: NO_SIZE_LIMIT,
+    band: PARTNER_BAND,
     topics: new Map(terms.map((term) => [term.phrase, term.topic])),
   });
   const ranked = rankByMomentum(kept);

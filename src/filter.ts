@@ -7,6 +7,8 @@ export const NO_SIZE_LIMIT: SizeBand = {
   max: Number.POSITIVE_INFINITY,
 };
 
+export const PARTNER_BAND: SizeBand = { min: 1_000, max: 100_000 };
+
 export type DropReason =
   | "existing-partner"
   | "no-subscriber-count"
