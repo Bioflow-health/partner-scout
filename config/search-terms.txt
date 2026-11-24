@@ -1,6 +1,6 @@
-# search phrase | topic keyword
+# search phrase | topic keyword  (1 to 5 lines, each phrase listed once)
 # The API searches for the phrase. A found video is kept only if its title or
-# description names the topic keyword. Without "| keyword", the whole phrase is used.
+# description names the topic keyword. Both parts are required.
 claude code social media automation | claude code
 mcp social media posting | mcp
 n8n automation tutorial | n8n
