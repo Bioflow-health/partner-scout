@@ -20,7 +20,7 @@ Run four checks, in order.
    - Pass: "In the video, one skill clips a stream while it's still live."
    - Pass: "The description links a doc with every prompt."
 3. **Grounding.** List every person, brand, product, number and factual claim in the draft. Each one must appear in the creator's data, or be "Blotato's partner program". Anything the draft says about Blotato must be one of the facts in `config/blotato-facts.txt` (read it), shortened or not. Any other claim about Blotato fails. Anything else not in the data fails too, including any commission, payout or other number.
-4. **Would a real person send this to someone they admire?** Answer yes or no. A no fails the draft.
+4. **Would a real person send this to a creator they respect, and does it read as written for this creator rather than as a template?** Answer yes or no. A no fails the draft.
 
 Reply with only this JSON, nothing else:
 

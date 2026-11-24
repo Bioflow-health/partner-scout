@@ -89,7 +89,7 @@ Open Claude Code in this folder and ask it to use the `partner-dm-writer` skill 
 
 **The code gate** (`src/gate.ts`) rejects a draft that has an em dash, runs over 90 words, uses a hype word from `config/banned-words.txt`, doesn't name the video, has more or fewer than one question mark, or matches an AI-writing tell from `config/ai-tells.txt`. It accepts the full video title or its core: the text before the first `|`, without emoji.
 
-**The checker** (`.claude/agents/dm-checker.md`) runs on a smaller model with read-only access. It fails a draft for any AI-writing marker from the anti-slop-humanizer skill, any praise, any name, number or claim that isn't in the creator's video data or the Blotato facts file, or a "no" to one question: would a real person send this to someone they admire?
+**The checker** (`.claude/agents/dm-checker.md`) runs on a smaller model with read-only access. It fails a draft for any AI-writing marker from the anti-slop-humanizer skill, any praise, any name, number or claim that isn't in the creator's video data or the Blotato facts file, or a "no" to one question: would a real person send this to a creator they respect, and does it read as written for this creator rather than as a template?
 
 ## Step 6: Approve, then send by hand
 
