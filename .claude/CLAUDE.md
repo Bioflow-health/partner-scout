@@ -23,7 +23,7 @@ Partner Scout finds YouTube creators worth a personal partnership message and dr
 ## Secrets and quota
 
 - The code reads the key only from `process.env.YOUTUBE_API_KEY` and sends it in the `x-goog-api-key` header, never in a URL.
-- Never print, log, write or commit the key. There is no `.env` file; `.env.example` holds only the variable name.
+- Never print, log, write or commit the key. There is no `.env` file. Each user sets `YOUTUBE_API_KEY` in their own shell (see the README).
 - Budget per live run: 5 search terms or fewer. A search costs 100 units; `videos.list` and `channels.list` cost 1 unit per 50 IDs. One run is about 510 units.
 - Comparing pivots? Use `--cached` so every variant scores the same data.
 
@@ -46,4 +46,4 @@ Every pivot is one commit whose message says why, plus an entry in `PIVOTS.md`: 
 
 ## Neutrality
 
-No partner, brand or personal names in code, config or docs, other than the search terms and the creator data the API returns.
+No partner, brand or personal names in code, config or docs, other than the search terms, the creator data the API returns, and attribution credits (authors, upstream repos and licenses).
