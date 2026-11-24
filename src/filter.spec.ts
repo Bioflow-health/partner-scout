@@ -3,7 +3,11 @@ import { makeCandidate } from "./fixtures";
 import { filterCandidates, NO_SIZE_LIMIT } from "./filter";
 import type { FilterOptions } from "./filter";
 
-const noLimits: FilterOptions = { partners: new Set(), band: NO_SIZE_LIMIT };
+const noLimits: FilterOptions = {
+  partners: new Set(),
+  band: NO_SIZE_LIMIT,
+  topics: new Map(),
+};
 
 describe("filterCandidates", () => {
   test("keeps an on-topic candidate that breaks no rule", () => {
@@ -104,6 +108,53 @@ describe("filterCandidates", () => {
     },
   ])("drops a video that $problem as off-topic", ({ videoTitle }) => {
     const candidate = makeCandidate("a", { videoTitle, description: "" });
+
+    expect(filterCandidates([candidate], noLimits)).toEqual({
+      kept: [],
+      dropped: [{ candidate, reason: "off-topic" }],
+    });
+  });
+
+  test("keeps a video that names the search term's topic keyword but not the whole phrase", () => {
+    const candidate = makeCandidate("a", {
+      searchTerm: "claude code tutorial",
+      videoTitle: "Claude Code: Build Your First AI Agent in 20 Minutes",
+      description: "",
+    });
+    const options = {
+      ...noLimits,
+      topics: new Map([["claude code tutorial", "claude code"]]),
+    };
+
+    expect(filterCandidates([candidate], options)).toEqual({
+      kept: [candidate],
+      dropped: [],
+    });
+  });
+
+  test("drops a video that has the rest of the search phrase but not its topic keyword", () => {
+    const candidate = makeCandidate("a", {
+      searchTerm: "mcp server tutorial",
+      videoTitle: "Home server tutorial for beginners",
+      description: "",
+    });
+    const options = {
+      ...noLimits,
+      topics: new Map([["mcp server tutorial", "mcp"]]),
+    };
+
+    expect(filterCandidates([candidate], options)).toEqual({
+      kept: [],
+      dropped: [{ candidate, reason: "off-topic" }],
+    });
+  });
+
+  test("falls back to the whole search phrase when the term has no topic keyword", () => {
+    const candidate = makeCandidate("a", {
+      searchTerm: "claude code tutorial",
+      videoTitle: "Claude Code: Build Your First AI Agent in 20 Minutes",
+      description: "",
+    });
 
     expect(filterCandidates([candidate], noLimits)).toEqual({
       kept: [],

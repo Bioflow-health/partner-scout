@@ -31,3 +31,19 @@ Unless an entry says otherwise, every result below scores the same data: `out/ca
 - With most real creators filtered out, views / subscribers rewards the tiniest channels.
 
 **Change:** pivot 1 fixes the off-topic rule. Pivot 2 adds the size band.
+
+## 2. Pivot 1: match a topic keyword, not the whole search phrase
+
+**Hypothesis:** the verbatim-phrase rule caused the 94 drops, not the creators. Matching one topic keyword per search term keeps real creators and still drops off-topic videos.
+
+**Change:** `config/search-terms.txt` now holds `search phrase | topic keyword`. A video is kept if its title or description names the keyword (whole words, in order, any case). The search phrase sent to the API is unchanged.
+
+**Result (same 250 videos):**
+
+- Off-topic drops fell from 155 to 26. Videos from 1K+ channels dropped as off-topic fell from 94 to 20 (of 141).
+- Kept channels rose from 55 to 158: 84 have 1K+ subscribers (46 between 1K and 100K, 38 above 100K) and 74 have fewer than 1K.
+- Duplicates rose from 34 to 60, because more channels now have two or more eligible videos. The most-viewed one is kept.
+- 17 of the 20 remaining 1K+ off-topic drops come from "social media automation", whose keyword is the whole phrase. The other 3 come from "claude code tutorial".
+- **The top 10 still fails, 0 of 10.** All ten have 50 or fewer subscribers, and #1 is unchanged (4 subscribers, momentum 305). Fixing the filter put real creators back in the pool, but views / subscribers still ranks the tiniest channels first.
+
+**Change:** pivot 2, the size band.

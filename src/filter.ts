@@ -21,13 +21,14 @@ export type FilterResult = { kept: Candidate[]; dropped: Dropped[] };
 export type FilterOptions = {
   partners: ReadonlySet<ChannelId>;
   band: SizeBand;
+  topics: ReadonlyMap<string, string>;
 };
 
 const escapeRegExp = (text: string) =>
   text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const mentionsSearchPhrase = (candidate: Candidate) => {
-  const words = candidate.searchTerm.trim().split(/\s+/).map(escapeRegExp);
+const mentionsTopic = (candidate: Candidate, topic: string) => {
+  const words = topic.trim().split(/\s+/).map(escapeRegExp);
   const phrase = new RegExp(`\\b${words.join("\\s+")}\\b`, "i");
   return (
     phrase.test(candidate.videoTitle) || phrase.test(candidate.description)
@@ -36,13 +37,14 @@ const mentionsSearchPhrase = (candidate: Candidate) => {
 
 const firstBrokenRule = (
   candidate: Candidate,
-  { partners, band }: FilterOptions,
+  { partners, band, topics }: FilterOptions,
 ): DropReason | null => {
   if (partners.has(candidate.channelId)) return "existing-partner";
   if (!candidate.subscribers) return "no-subscriber-count";
   if (candidate.subscribers < band.min || candidate.subscribers > band.max)
     return "outside-size-band";
-  if (!mentionsSearchPhrase(candidate)) return "off-topic";
+  const topic = topics.get(candidate.searchTerm) ?? candidate.searchTerm;
+  if (!mentionsTopic(candidate, topic)) return "off-topic";
   return null;
 };
 

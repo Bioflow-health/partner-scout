@@ -1,5 +1,8 @@
-claude code tutorial
-mcp server tutorial
-n8n automation tutorial
-social media automation
-blotato
+# search phrase | topic keyword
+# The API searches for the phrase. A found video is kept only if its title or
+# description names the topic keyword. Without "| keyword", the whole phrase is used.
+claude code tutorial | claude code
+mcp server tutorial | mcp
+n8n automation tutorial | n8n
+social media automation | social media automation
+blotato | blotato

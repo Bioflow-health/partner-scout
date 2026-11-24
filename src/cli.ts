@@ -14,6 +14,14 @@ const readLines = async (path: string) =>
     .map((line) => line.trim())
     .filter((line) => line !== "" && !line.startsWith("#"));
 
+const loadSearchTerms = async () =>
+  (await readLines("config/search-terms.txt")).map((line) => {
+    const [phrase = "", topic = phrase] = line
+      .split("|")
+      .map((part) => part.trim());
+    return { phrase, topic };
+  });
+
 const loadPartners = async (): Promise<ReadonlySet<ChannelId>> => {
   const [, ...rows] = await readLines("config/partners.csv");
   return new Set(
@@ -34,7 +42,7 @@ const loadCachedRun = async () => {
   return { run, source: `cache ${path} (0 new quota units)` };
 };
 
-const loadLiveRun = async () => {
+const loadLiveRun = async (phrases: readonly string[]) => {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -42,11 +50,7 @@ const loadLiveRun = async () => {
     );
   }
   const now = new Date();
-  const run = await fetchRun(
-    await readLines("config/search-terms.txt"),
-    apiKey,
-    now,
-  );
+  const run = await fetchRun(phrases, apiKey, now);
   const path = `${CACHE_DIR}/${now.toLocaleDateString("en-CA")}.json`;
   await mkdir(CACHE_DIR, { recursive: true });
   await writeFile(path, JSON.stringify(run, null, 2));
@@ -59,14 +63,16 @@ const loadLiveRun = async () => {
 const formatCount = (value: number) => value.toLocaleString("en-US");
 
 const main = async () => {
+  const terms = await loadSearchTerms();
   const { run, source } = process.argv.includes("--cached")
     ? await loadCachedRun()
-    : await loadLiveRun();
+    : await loadLiveRun(terms.map((term) => term.phrase));
 
   const candidates = toCandidates(run);
   const { kept, dropped } = filterCandidates(candidates, {
     partners: await loadPartners(),
     band: NO_SIZE_LIMIT,
+    topics: new Map(terms.map((term) => [term.phrase, term.topic])),
   });
   const ranked = rankByMomentum(kept);
 
@@ -80,6 +86,7 @@ const main = async () => {
 
   console.log(`Source: ${source}`);
   console.log(`Search terms: ${run.searches.map((s) => s.term).join(" | ")}`);
+  console.log(`Topic keywords: ${terms.map((t) => t.topic).join(" | ")}`);
   console.log(`Published after: ${run.publishedAfter}`);
   console.log(
     `Videos found: ${candidates.length} | kept: ${kept.length} | dropped: ${dropped.length} (${dropSummary || "none"})`,
