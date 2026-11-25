@@ -2,6 +2,7 @@ import { draftHash } from "./checks";
 import type { CheckVerdict } from "./checks";
 import type { GateResult } from "./gate";
 import type { Scored } from "./score";
+import { escapeMarkdown } from "./text";
 
 export type Attempt = { draft: string };
 
@@ -76,16 +77,29 @@ export const entryStatus = (
 
 const formatCount = (value: number) => value.toLocaleString("en-US");
 
+const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
+const CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/;
+
+const videoLink = (id: string) =>
+  VIDEO_ID.test(id)
+    ? `<https://youtu.be/${id}>`
+    : "(no link: unexpected video ID)";
+
+const channelLink = (id: string) =>
+  CHANNEL_ID.test(id)
+    ? `<https://www.youtube.com/channel/${id}>`
+    : "(no link: unexpected channel ID)";
+
 const gateLine = (gate: GateResult | undefined) =>
   !gate
     ? "not run"
     : gate.pass
       ? "pass"
-      : `fail (${gate.failures.map((f) => `${f.rule}: ${f.detail}`).join("; ")})`;
+      : `fail (${escapeMarkdown(gate.failures.map((f) => `${f.rule}: ${f.detail}`).join("; "))})`;
 
 const checkerLine = (verdict: CheckVerdict | undefined, stale: boolean) =>
   verdict
-    ? `${verdict.pass ? "pass" : "fail"}. ${verdict.reason}`
+    ? `${verdict.pass ? "pass" : "fail"}. ${escapeMarkdown(verdict.reason)}`
     : stale
       ? "needs re-check: the draft changed after the checker saw it"
       : "not run yet";
@@ -118,13 +132,19 @@ const renderRow = ({
   const status = entryStatus(entry, gates, verdicts);
   const verdictOf = (attempt: Attempt) =>
     verdictFor(verdicts, candidate.videoId, attempt.draft);
+  const channelName = escapeMarkdown(candidate.channelTitle);
+  const fitLine = !entry
+    ? "not judged yet"
+    : entry.fit
+      ? `yes. ${escapeMarkdown(entry.reason)}`
+      : `skip. ${escapeMarkdown(entry.reason.replace(/^skip:\s*/i, ""))}`;
   const lines = [
-    `## ${rank}. ${candidate.channelTitle.trim()}`,
+    `## ${rank}. ${channelName}`,
     "",
-    `- Channel: https://www.youtube.com/channel/${candidate.channelId}`,
-    `- Video: [${candidate.videoTitle}](https://youtu.be/${candidate.videoId})`,
-    `- Momentum: ${candidate.momentum.toFixed(2)} = ${formatCount(candidate.views)} views / ${formatCount(candidate.subscribers ?? 0)} subscribers (term: ${candidate.searchTerm})`,
-    `- Fit: ${!entry ? "not judged yet" : entry.fit ? `yes. ${entry.reason}` : `skip. ${entry.reason.replace(/^skip:\s*/i, "")}`}`,
+    `- Channel: ${channelName}, ${channelLink(candidate.channelId)}`,
+    `- Video: ${escapeMarkdown(candidate.videoTitle)}, ${videoLink(candidate.videoId)}`,
+    `- Momentum: ${candidate.momentum.toFixed(2)} = ${formatCount(candidate.views)} views / ${formatCount(candidate.subscribers ?? 0)} subscribers (term: ${escapeMarkdown(candidate.searchTerm)})`,
+    `- Fit: ${fitLine}`,
   ];
 
   const attempts = entry?.attempts ?? [];

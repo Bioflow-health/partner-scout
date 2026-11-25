@@ -1,9 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { draftHash } from "./checks";
 import type { CheckVerdict } from "./checks";
+import { makeCandidate } from "./fixtures";
 import type { GateResult } from "./gate";
-import { entryStatus, orphanedDrafts } from "./shortlist";
-import type { DraftEntry } from "./shortlist";
+import { entryStatus, orphanedDrafts, renderShortlist } from "./shortlist";
+import type { DraftEntry, ShortlistRow } from "./shortlist";
+import type { ChannelId, VideoId } from "./types";
 
 const gatePass: GateResult = { pass: true, failures: [] };
 const gateFail: GateResult = {
@@ -152,5 +154,264 @@ describe("orphanedDrafts", () => {
 
   test("returns nothing when every drafted video is still a candidate", () => {
     expect(orphanedDrafts(["v1", "v2"], ["v2", "v1", "v5"])).toEqual([]);
+  });
+});
+
+const VIDEO_ID = "AAAAAAAAAAA" as VideoId;
+const CHANNEL_ID = "UCaaaaaaaaaaaaaaaaaaaaaa" as ChannelId;
+
+const row = (
+  overrides: Partial<ShortlistRow> & { candidateFields?: object } = {},
+): ShortlistRow => {
+  const { candidateFields = {}, ...rest } = overrides;
+  return {
+    rank: 1,
+    candidate: {
+      ...makeCandidate("a", {
+        videoId: VIDEO_ID,
+        channelId: CHANNEL_ID,
+        channelTitle: "Build Lab",
+        videoTitle: "Clip streams live",
+        views: 5_000,
+        subscribers: 1_000,
+        searchTerm: "claude code social media automation",
+        ...candidateFields,
+      }),
+      momentum: 5,
+    },
+    entry: undefined,
+    gates: [],
+    verdicts: [],
+    ...rest,
+  };
+};
+
+const READY_DRAFT =
+  'Hi, in "Clip streams live", one skill clips a stream while it is live.';
+const readyEntry: DraftEntry = {
+  videoId: VIDEO_ID,
+  fit: true,
+  reason: "teaches clipping",
+  attempts: [{ draft: READY_DRAFT }],
+};
+const passFor = (draft: string): CheckVerdict => ({
+  videoId: VIDEO_ID,
+  draftSha256: draftHash(draft),
+  pass: true,
+  reason: "grounded",
+});
+const failFor = (draft: string): CheckVerdict => ({
+  ...passFor(draft),
+  pass: false,
+  reason: "rule 5: praise",
+});
+const linesOf = (rows: ShortlistRow[]) =>
+  renderShortlist(
+    "r1",
+    "cache out/cache/x.json (0 new quota units)",
+    rows,
+  ).split("\n");
+
+describe("renderShortlist", () => {
+  test("renders a ready row in full, with links built from its IDs", () => {
+    expect(
+      renderShortlist("r1", "cache out/cache/x.json (0 new quota units)", [
+        row({
+          entry: readyEntry,
+          gates: [gatePass],
+          verdicts: [passFor(READY_DRAFT)],
+        }),
+      ]),
+    ).toBe(
+      [
+        "# Partner shortlist, r1",
+        "",
+        "Source: cache out/cache/x.json (0 new quota units).",
+        "",
+        "Watch the video before approving. A human sends every message.",
+        "",
+        "Nothing here has been sent. Tick approve or skip for each ready draft, and add the program terms before sending.",
+        "",
+        "Status: ready 1",
+        "",
+        "---",
+        "",
+        "## 1. Build Lab",
+        "",
+        "- Channel: Build Lab, <https://www.youtube.com/channel/UCaaaaaaaaaaaaaaaaaaaaaa>",
+        "- Video: Clip streams live, <https://youtu.be/AAAAAAAAAAA>",
+        "- Momentum: 5.00 = 5,000 views / 1,000 subscribers (term: claude code social media automation)",
+        "- Fit: yes. teaches clipping",
+        "",
+        "**Draft**",
+        "",
+        `> ${READY_DRAFT}`,
+        "",
+        "- Code gate: pass",
+        "- Checker: pass. grounded",
+        "",
+        "**Decision:** [ ] approve [ ] skip",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  test("escapes a spoofed title and channel name, and gives no link for IDs that are not YouTube IDs", () => {
+    const lines = linesOf([
+      row({
+        candidateFields: {
+          videoId: "bad id!!",
+          channelId: "not-a-channel",
+          channelTitle: "Evil*Co\nInjected",
+          videoTitle: "Foo](https://evil.example) x",
+        },
+      }),
+    ]);
+
+    expect(
+      lines.filter((line) => /^(## |- Channel|- Video)/.test(line)),
+    ).toEqual([
+      "## 1. Evil\\*Co Injected",
+      "- Channel: Evil\\*Co Injected, (no link: unexpected channel ID)",
+      "- Video: Foo\\]\\(https://evil.example\\) x, (no link: unexpected video ID)",
+    ]);
+  });
+
+  test("collapses and escapes a checker reason, so it cannot add a decision line", () => {
+    const verdict = {
+      ...failFor(READY_DRAFT),
+      reason: "fails\n\n**Decision:** [ ] approve [ ] skip",
+    };
+    const lines = linesOf([
+      row({ entry: readyEntry, gates: [gatePass], verdicts: [verdict] }),
+    ]);
+
+    expect([
+      lines.filter((line) => line.startsWith("**Decision:**")),
+      lines.filter((line) => line.startsWith("- Checker:")),
+    ]).toEqual([
+      ["**Decision:** waiting for the writer's one revision"],
+      [
+        "- Checker: fail. fails \\*\\*Decision:\\*\\* \\[ \\] approve \\[ \\] skip",
+      ],
+    ]);
+  });
+
+  test("puts an approve box only on ready rows, and counts every status", () => {
+    const second = "second draft";
+    const lines = linesOf([
+      row({
+        entry: readyEntry,
+        gates: [gatePass],
+        verdicts: [passFor(READY_DRAFT)],
+      }),
+      row({
+        entry: {
+          ...readyEntry,
+          fit: false,
+          reason: "skip: vendor channel",
+          attempts: [],
+        },
+      }),
+      row({
+        entry: {
+          ...readyEntry,
+          attempts: [{ draft: READY_DRAFT }, { draft: second }],
+        },
+        gates: [gatePass, gateFail],
+        verdicts: [failFor(READY_DRAFT)],
+      }),
+      row({ entry: readyEntry, gates: [gatePass] }),
+      row({
+        entry: readyEntry,
+        gates: [gatePass],
+        verdicts: [passFor("an older text")],
+      }),
+      row({ entry: readyEntry, gates: [gateFail] }),
+    ]);
+
+    expect([
+      lines.filter((line) => line.includes("[ ] approve")).length,
+      lines.find((line) => line.startsWith("Status:")),
+    ]).toEqual([
+      1,
+      "Status: ready 1 | skipped 1 | blocked 1 | pending-checker 1 | needs-recheck 1 | pending-revision 1",
+    ]);
+  });
+
+  test("shows a checker pass next to a gate failure as waiting for the revision", () => {
+    const lines = linesOf([
+      row({
+        entry: readyEntry,
+        gates: [gateFail],
+        verdicts: [passFor(READY_DRAFT)],
+      }),
+    ]);
+
+    expect(
+      lines.filter((line) =>
+        /^(- Code gate|- Checker|\*\*Decision)/.test(line),
+      ),
+    ).toEqual([
+      "- Code gate: fail (em-dash: em dashes: 1)",
+      "- Checker: pass. grounded",
+      "**Decision:** waiting for the writer's one revision",
+    ]);
+  });
+
+  test("shows a skip reason without a doubled skip prefix", () => {
+    const lines = linesOf([
+      row({
+        entry: {
+          ...readyEntry,
+          fit: false,
+          reason: "skip: vendor channel",
+          attempts: [],
+        },
+      }),
+    ]);
+
+    expect(lines.filter((line) => line.startsWith("- Fit:"))).toEqual([
+      "- Fit: skip. vendor channel",
+    ]);
+  });
+
+  test("quotes every line of a multi-line draft", () => {
+    const draft = "Line one.\nLine two.";
+    const rendered = renderShortlist("r1", "s", [
+      row({
+        entry: { ...readyEntry, attempts: [{ draft }] },
+        gates: [gatePass],
+      }),
+    ]);
+
+    expect(rendered).toContain("\n> Line one.\n> Line two.\n");
+  });
+
+  test("pairs each earlier attempt with its own gate result and verdict", () => {
+    const second = "second draft";
+    const lines = linesOf([
+      row({
+        entry: {
+          ...readyEntry,
+          attempts: [{ draft: READY_DRAFT }, { draft: second }],
+        },
+        gates: [gateFail, gatePass],
+        verdicts: [failFor(READY_DRAFT), passFor(second)],
+      }),
+    ]);
+
+    expect(
+      lines.filter((line) =>
+        /^(\*\*Draft|\*\*Earlier|- Code gate|- Checker)/.test(line),
+      ),
+    ).toEqual([
+      "**Draft (revised once)**",
+      "- Code gate: pass",
+      "- Checker: pass. grounded",
+      "**Earlier attempt 1, sent back to the writer**",
+      "- Code gate: fail (em-dash: em dashes: 1)",
+      "- Checker: fail. rule 5: praise",
+    ]);
   });
 });
