@@ -4,6 +4,7 @@ export type GateRule =
   | "em-dash"
   | "too-long"
   | "banned-word"
+  | "number"
   | "missing-video-title"
   | "call-to-action"
   | "ai-tell";
@@ -25,6 +26,12 @@ const EM_DASH = "—";
 const EMOJI = /[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu;
 
 const occurrences = (text: string, mark: string) => text.split(mark).length - 1;
+
+const NUMBER = /[$€£]?(?<![\p{L}\p{N}_])\d[\d.,]*(?![\p{L}\p{N}_])%?/gu;
+const ASK = /partner program/i;
+
+const questionSentence = (body: string) =>
+  body.split(/(?<=[.!?])\s+/).find((sentence) => sentence.includes("?")) ?? "";
 
 const CORE_MIN_WORDS = 2;
 const CORE_MIN_CHARACTERS = 12;
@@ -80,6 +87,15 @@ export const checkDraft = (
       failures.push({ rule: "banned-word", detail: `"${word}"` });
     }
   }
+  const numbers = (body.match(NUMBER) ?? []).map((n) =>
+    n.replace(/[.,]+$/, ""),
+  );
+  if (numbers.length > 0) {
+    failures.push({
+      rule: "number",
+      detail: `numbers outside the video title: ${numbers.join(", ")}`,
+    });
+  }
   if (!namesVideo) {
     failures.push({
       rule: "missing-video-title",
@@ -92,6 +108,11 @@ export const checkDraft = (
     failures.push({
       rule: "call-to-action",
       detail: `question marks: ${questions}, need exactly 1`,
+    });
+  } else if (!ASK.test(questionSentence(body))) {
+    failures.push({
+      rule: "call-to-action",
+      detail: "the one question must ask about the partner program",
     });
   }
   for (const tell of aiTells) {

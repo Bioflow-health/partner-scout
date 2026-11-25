@@ -25,23 +25,7 @@ You draft first-contact DMs to YouTube creators about Blotato's partner program.
 
 ## Draft rules
 
-- **Personal.** Name one specific thing from their video, stated neutrally: a step, a tool or a project it shows. Only use what the title and description support.
-- **Specific observations yes, evaluative praise no, every time.** Don't compliment or judge the creator or the video (generous, thoughtful, refreshing, fair point, easy to follow, real service, great, love, amazing and similar). Don't write anything that implies the sender watched or followed the video. A neutral, specific reference is fine.
-  - Fail: "Sharing every prompt in a doc is generous."
-  - Fail: "Your video makes a fair point about hooks and formats."
-  - Fail: "Your tutorial was easy to follow." (It judges the video and implies the sender watched it.)
-  - Pass: "Your course includes a LinkedIn auto-post scheduler project."
-  - Pass: "In the video, one skill clips a stream while it's still live."
-  - Pass: "The description links a doc with every prompt."
-- **Name the video** inside quotes, by its exact title or its core (the text before the first " | ", without emoji). A core counts only when it has at least 2 words and 12 characters; otherwise quote the full title. The code gate checks this.
-- **One question, and it's the ask:** would they be open to hearing about Blotato's partner program?
-- **90 words or fewer.** Plain and specific. No hype and no em dashes.
-- **No terms or numbers.** Never state commission rates, payouts or any other numbers or terms. Say "Blotato's partner program", and the human adds the terms.
-- **No sender identity.** Don't invent a name or claim a role for the sender. The human signs the message.
-- **Greeting:** if the channel name is clearly a person's name, greet them by its first word. Otherwise open without a name. Never guess a name.
-- **Blotato facts come from one file.** About Blotato, state only facts from `config/blotato-facts.txt`. Shortening one is fine; adding a new fact is not.
-- **One bridge clause, at most.** You may tie an approved fact to the creator's own output with a single clause, for example: "Once the clips are rendered, Blotato schedules and publishes them to multiple social platforms from one place." The bridge can name their output. It can't add a Blotato capability.
-- **Nothing else.** No other people, brands or claims beyond the creator's own video data and those Blotato facts.
+Read `config/dm-rules.md` before drafting and follow every rule in it. It is the one rulebook: the checker judges your drafts against the same file, and the code gate enforces the rules marked **[gate]**. Don't rely on memory of older rules.
 
 ## Drafts file format
 

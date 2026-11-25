@@ -352,4 +352,62 @@ describe("checkDraft", () => {
       });
     });
   });
+
+  describe("rulebook rules the gate can check", () => {
+    test("fails a draft with numbers outside the quoted title, and quotes them", () => {
+      const text = CLEAN.replace(
+        "batch posts.",
+        "batch 30 posts for $300 a month, up 20%.",
+      );
+
+      expect(checkDraft({ text, videoTitle: TITLE }, config)).toEqual({
+        pass: false,
+        failures: [
+          {
+            rule: "number",
+            detail: "numbers outside the video title: 30, $300, 20%",
+          },
+        ],
+      });
+    });
+
+    test("allows numbers inside the quoted title", () => {
+      const title = "Top 5 tips for 2026";
+      const text = CLEAN.replace(TITLE, title);
+
+      expect(checkDraft({ text, videoTitle: title }, config)).toEqual({
+        pass: true,
+        failures: [],
+      });
+    });
+
+    test("treats names that contain digits, like n8n and 3D, as words", () => {
+      const text = CLEAN.replace(
+        "batch posts.",
+        "batch n8n flows and 3D clips.",
+      );
+
+      expect(checkDraft({ text, videoTitle: TITLE }, config)).toEqual({
+        pass: true,
+        failures: [],
+      });
+    });
+
+    test("fails a draft whose one question is not the partner-program ask", () => {
+      const text = CLEAN.replace(
+        "Would you be open to a quick chat about a partner program?",
+        "Did you plan the scheduling part?",
+      );
+
+      expect(checkDraft({ text, videoTitle: TITLE }, config)).toEqual({
+        pass: false,
+        failures: [
+          {
+            rule: "call-to-action",
+            detail: "the one question must ask about the partner program",
+          },
+        ],
+      });
+    });
+  });
 });
