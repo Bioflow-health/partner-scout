@@ -9,7 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { newestFile, writeNew } from "./files";
+import { newestFile, writeBeside, writeNew } from "./files";
 
 let dir = "";
 
@@ -96,6 +96,38 @@ describe("writeNew", () => {
     );
 
     expect(await readFile(path, "utf8")).toBe("a");
+  });
+});
+
+describe("writeBeside", () => {
+  test("writes next to the given file with the new extension, and leaves an identical copy as it is", async () => {
+    const markdown = join(dir, "shortlist-r1-v3.md");
+    const results = [
+      await writeBeside(markdown, ".csv", "rank,status"),
+      await writeBeside(markdown, ".csv", "rank,status"),
+    ];
+
+    expect([results, await contents()]).toEqual([
+      [
+        { path: join(dir, "shortlist-r1-v3.csv"), outcome: "written" },
+        { path: join(dir, "shortlist-r1-v3.csv"), outcome: "unchanged" },
+      ],
+      [["shortlist-r1-v3.csv", "rank,status"]],
+    ]);
+  });
+
+  test("never overwrites a file with different content, such as one a human edited", async () => {
+    await writeFile(join(dir, "shortlist-r1.csv"), "my decisions");
+    const result = await writeBeside(
+      join(dir, "shortlist-r1.md"),
+      ".csv",
+      "a new render",
+    );
+
+    expect([result, await contents()]).toEqual([
+      { path: join(dir, "shortlist-r1.csv"), outcome: "kept" },
+      [["shortlist-r1.csv", "my decisions"]],
+    ]);
   });
 });
 

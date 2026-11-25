@@ -8,6 +8,7 @@ import {
   entryStatus,
   orphanedDrafts,
   renderShortlist,
+  renderShortlistCsv,
 } from "./shortlist";
 import type { DraftEntry, ShortlistRow } from "./shortlist";
 import type { ChannelId, VideoId } from "./types";
@@ -418,6 +419,78 @@ describe("renderShortlist", () => {
       "- Code gate: fail (em-dash: em dashes: 1)",
       "- Checker: fail. rule 5: praise",
     ]);
+  });
+});
+
+describe("renderShortlistCsv", () => {
+  const HEADER =
+    "rank,status,channel,channel_id,channel_url,video_title,video_url,subscribers,views,momentum,search_term,fit,fit_reason,draft,checker_result,attempts,decision";
+  const CHANNEL_CELLS = `Build Lab,${CHANNEL_ID},https://www.youtube.com/channel/${CHANNEL_ID}`;
+  const VIDEO_URL = `https://youtu.be/${VIDEO_ID}`;
+  const NUMBER_CELLS = "1000,5000,5.00,claude code social media automation";
+  const skipped = (rank: number, videoTitle = "Clip streams live") =>
+    row({
+      rank,
+      candidateFields: { videoTitle },
+      entry: { ...skip, videoId: VIDEO_ID },
+    });
+
+  test("writes a header and one row per candidate in shortlist order, with the draft only on ready rows", () => {
+    const multiLine =
+      'Hi, in "Clip streams live", one skill clips a stream.\nWould you be open to hearing about Blotato\'s partner program?';
+    const pendingEntry: DraftEntry = {
+      videoId: VIDEO_ID,
+      fit: true,
+      reason: "teaches posting",
+      attempts: [{ draft: "an unchecked draft" }],
+    };
+
+    expect(
+      renderShortlistCsv([
+        row({
+          entry: { ...readyEntry, attempts: [{ draft: multiLine }] },
+          gates: [gatePass],
+          verdicts: [passFor(multiLine)],
+        }),
+        row({ rank: 2, entry: pendingEntry, gates: [gatePass] }),
+        skipped(3),
+      ]),
+    ).toBe(
+      [
+        `\uFEFF${HEADER}`,
+        `1,ready,${CHANNEL_CELLS},Clip streams live,${VIDEO_URL},${NUMBER_CELLS},yes,teaches clipping,"Hi, in ""Clip streams live"", one skill clips a stream.\nWould you be open to hearing about Blotato's partner program?",pass. grounded,1,`,
+        `2,pending-checker,${CHANNEL_CELLS},Clip streams live,${VIDEO_URL},${NUMBER_CELLS},yes,teaches posting,,not run yet,1,`,
+        `3,skipped,${CHANNEL_CELLS},Clip streams live,${VIDEO_URL},${NUMBER_CELLS},no,a general coding tutorial,,,0,`,
+        "",
+      ].join("\r\n"),
+    );
+  });
+
+  test.each([
+    {
+      label: 'a title starting with "=HYPERLINK(" is defused',
+      title: '=HYPERLINK("https://example.test","click")',
+      cell: '"\'=HYPERLINK(""https://example.test"",""click"")"',
+    },
+    {
+      label: 'a title starting with "+" is defused',
+      title: "+5 hooks for Reels",
+      cell: "'+5 hooks for Reels",
+    },
+    {
+      label: "a title with a comma and quotes is quoted",
+      title: 'Hooks, formats and the "live" skill',
+      cell: '"Hooks, formats and the ""live"" skill"',
+    },
+    {
+      label: "a title with an emoji is kept as it is",
+      title: "🔥 Clip streams live",
+      cell: "🔥 Clip streams live",
+    },
+  ])("$label", ({ title, cell }) => {
+    expect(renderShortlistCsv([skipped(1, title)]).split("\r\n")[1]).toBe(
+      `1,skipped,${CHANNEL_CELLS},${cell},${VIDEO_URL},${NUMBER_CELLS},no,a general coding tutorial,,,0,`,
+    );
   });
 });
 

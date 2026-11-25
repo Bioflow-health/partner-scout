@@ -1,5 +1,6 @@
 import { draftHash } from "./checks";
 import type { CheckVerdict } from "./checks";
+import { toCsv } from "./csv";
 import { checkDraft } from "./gate";
 import type { GateConfig, GateResult } from "./gate";
 import type { Scored } from "./score";
@@ -103,15 +104,17 @@ const formatCount = (value: number) => value.toLocaleString("en-US");
 const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 const CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/;
 
+const videoUrl = (id: string) =>
+  VIDEO_ID.test(id) ? `https://youtu.be/${id}` : "";
+
+const channelUrl = (id: string) =>
+  CHANNEL_ID.test(id) ? `https://www.youtube.com/channel/${id}` : "";
+
 const videoLink = (id: string) =>
-  VIDEO_ID.test(id)
-    ? `<https://youtu.be/${id}>`
-    : "(no link: unexpected video ID)";
+  videoUrl(id) ? `<${videoUrl(id)}>` : "(no link: unexpected video ID)";
 
 const channelLink = (id: string) =>
-  CHANNEL_ID.test(id)
-    ? `<https://www.youtube.com/channel/${id}>`
-    : "(no link: unexpected channel ID)";
+  channelUrl(id) ? `<${channelUrl(id)}>` : "(no link: unexpected channel ID)";
 
 const gateLine = (gate: GateResult | undefined) =>
   !gate
@@ -120,9 +123,13 @@ const gateLine = (gate: GateResult | undefined) =>
       ? "pass"
       : `fail (${escapeMarkdown(gate.failures.map((f) => `${f.rule}: ${f.detail}`).join("; "))})`;
 
-const checkerLine = (verdict: CheckVerdict | undefined, stale: boolean) =>
+const checkerLine = (
+  verdict: CheckVerdict | undefined,
+  stale: boolean,
+  escape: (text: string) => string = escapeMarkdown,
+) =>
   verdict
-    ? `${verdict.pass ? "pass" : "fail"}. ${escapeMarkdown(verdict.reason)}`
+    ? `${verdict.pass ? "pass" : "fail"}. ${escape(verdict.reason)}`
     : stale
       ? "needs re-check: the draft changed after the checker saw it"
       : "not run yet";
@@ -198,6 +205,64 @@ const renderRow = ({
   lines.push("", DECISION[status]);
   return lines.join("\n");
 };
+
+const CSV_COLUMNS = [
+  "rank",
+  "status",
+  "channel",
+  "channel_id",
+  "channel_url",
+  "video_title",
+  "video_url",
+  "subscribers",
+  "views",
+  "momentum",
+  "search_term",
+  "fit",
+  "fit_reason",
+  "draft",
+  "checker_result",
+  "attempts",
+  "decision",
+];
+
+const csvRow = ({
+  rank,
+  candidate,
+  entry,
+  gates,
+  verdicts,
+}: ShortlistRow): string[] => {
+  const status = entryStatus(entry, gates, verdicts);
+  const final = entry?.attempts.at(-1);
+  const verdict = final
+    ? verdictFor(verdicts, candidate.videoId, final.draft)
+    : undefined;
+  return [
+    String(rank),
+    status,
+    candidate.channelTitle,
+    candidate.channelId,
+    channelUrl(candidate.channelId),
+    candidate.videoTitle,
+    videoUrl(candidate.videoId),
+    String(candidate.subscribers ?? ""),
+    String(candidate.views),
+    candidate.momentum.toFixed(2),
+    candidate.searchTerm,
+    entry ? (entry.fit ? "yes" : "no") : "",
+    entry ? entry.reason.replace(/^skip:\s*/i, "") : "",
+    status === "ready" && final ? final.draft : "",
+    final
+      ? checkerLine(verdict, status === "needs-recheck", (text) => text)
+      : "",
+    String(entry?.attempts.length ?? 0),
+    "",
+  ];
+};
+
+export const renderShortlistCsv = (rows: readonly ShortlistRow[]): string =>
+  toCsv([CSV_COLUMNS, ...rows.map(csvRow)]);
 
 export const renderShortlist = (
   date: string,

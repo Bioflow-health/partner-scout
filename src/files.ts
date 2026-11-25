@@ -1,5 +1,5 @@
 import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { extname, join } from "node:path";
 
 export type WriteNewOptions = { separator?: string; reuseIfSame?: boolean };
 
@@ -34,6 +34,22 @@ export const writeNew = async (
     }
     newest = { path, content: existing };
   }
+};
+
+export type BesideOutcome = "written" | "unchanged" | "kept";
+
+export const writeBeside = async (
+  path: string,
+  ext: string,
+  content: string,
+): Promise<{ path: string; outcome: BesideOutcome }> => {
+  const target = path.slice(0, path.length - extname(path).length) + ext;
+  const existing = await readIfExists(target);
+  if (existing === undefined) {
+    await writeFile(target, content, { flag: "wx" });
+    return { path: target, outcome: "written" };
+  }
+  return { path: target, outcome: existing === content ? "unchanged" : "kept" };
 };
 
 export const newestFile = async (

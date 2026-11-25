@@ -11,7 +11,7 @@ import {
 import type { SearchTerm } from "./config";
 import { draftHash, parseChecks, recordVerdict } from "./checks";
 import { parseDrafts } from "./drafts";
-import { newestFile, writeNew } from "./files";
+import { newestFile, writeBeside, writeNew } from "./files";
 import { filterCandidates, PARTNER_BAND } from "./filter";
 import { parseOutcomes, summarizeOutcomes } from "./learn";
 import { rankByMomentum } from "./score";
@@ -21,6 +21,7 @@ import {
   entryStatus,
   orphanedDrafts,
   renderShortlist,
+  renderShortlistCsv,
 } from "./shortlist";
 import type { DraftEntry } from "./shortlist";
 import type { ChannelId } from "./types";
@@ -158,8 +159,14 @@ const writeShortlist = async (run: string) => {
     renderShortlist(run, candidates.source, rows),
     { ...VERSION, reuseIfSame: true },
   );
+  const csv = await writeBeside(path, ".csv", renderShortlistCsv(rows));
 
   console.log(`\nShortlist: ${path}`);
+  console.log(
+    csv.outcome === "kept"
+      ? `CSV: ${csv.path} (left unchanged: it differs from this render, so it may hold your edits)`
+      : `CSV: ${csv.path}`,
+  );
   for (const row of rows) {
     const gate = row.gates.at(-1);
     const failures =

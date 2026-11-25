@@ -119,6 +119,8 @@ Open Claude Code in this folder, in a shell without `YOUTUBE_API_KEY` (see Step 
 
 Open `out/shortlist-<run>.md`. For each ready draft, watch the video first, then tick approve or skip. Send the approved messages yourself and add the program terms.
 
+`npm run shortlist` also writes `out/shortlist-<run>.csv` next to the Markdown file, one row per creator, for a spreadsheet; its empty `decision` column is where you write approve or skip.
+
 ## Step 7: Log outcomes and learn
 
 Each time a creator reaches a stage, add a row to `config/outcomes.csv`:
