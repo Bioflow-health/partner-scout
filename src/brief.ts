@@ -1,6 +1,6 @@
 import type { Scored } from "./score";
 
-export const DESCRIPTION_CAP = 1_500;
+export const DESCRIPTION_CAP = 5_000;
 
 const BEGIN = "<<<BEGIN UNTRUSTED CREATOR DATA>>>";
 const END = "<<<END UNTRUSTED CREATOR DATA>>>";

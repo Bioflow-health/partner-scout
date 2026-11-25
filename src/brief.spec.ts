@@ -1,26 +1,27 @@
 import { describe, expect, test } from "vitest";
-import { capDescription, DESCRIPTION_CAP, renderWriterBrief } from "./brief";
+import { capDescription, renderWriterBrief } from "./brief";
 import { makeCandidate } from "./fixtures";
 
 describe("capDescription", () => {
   test.each([
     { label: "a short description", length: 10 },
-    { label: "a description exactly at the cap", length: DESCRIPTION_CAP },
+    { label: "a description just under the cap", length: 4_999 },
+    { label: "a description exactly at the 5,000 cap", length: 5_000 },
   ])("keeps $label unchanged", ({ length }) => {
     const text = "a".repeat(length);
 
     expect(capDescription(text)).toBe(text);
   });
 
-  test("cuts a longer description to 1,500 characters, ending with an ellipsis", () => {
-    expect(capDescription("a".repeat(1_501))).toBe(`${"a".repeat(1_499)}…`);
+  test("cuts a longer description to 5,000 characters, ending with an ellipsis", () => {
+    expect(capDescription("a".repeat(5_001))).toBe(`${"a".repeat(4_999)}…`);
   });
 
   test("never splits an emoji in half", () => {
-    const capped = [...capDescription("🔥".repeat(1_600))];
+    const capped = [...capDescription("🔥".repeat(5_100))];
 
     expect([capped.length, capped.at(-2), capped.at(-1)]).toEqual([
-      1_500,
+      5_000,
       "🔥",
       "…",
     ]);
