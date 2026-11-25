@@ -87,6 +87,8 @@ Usage:
   npm run scout:cached [cache-file]  Re-score a saved cache (the newest by default). No API calls.
   npm run shortlist [run]            Render a run's shortlist (the newest run by default). No API calls.
   npm run learn                      Summarize config/outcomes.csv. No API calls.
+  npm run check:record <run> <videoId> <pass|fail> <reason>
+                                     Record a dm-checker verdict for the current draft. No API calls.
 
 Only scout:live spends YouTube quota.
 ```
@@ -97,8 +99,8 @@ Open Claude Code in this folder and ask it to use the `partner-dm-writer` skill 
 
 1. Judges each creator's topic fit and skips the ones that don't fit, with a reason. Vendors demoing their own product are skipped too.
 2. Drafts one DM per fit. Each one names the video, mentions one specific detail in neutral words, asks one question, and stays at 90 words or fewer. It doesn't praise the creator and doesn't pretend the sender watched the video. About Blotato it says only what `config/blotato-facts.txt` says, with at most one clause that applies it to the creator's own work.
-3. Runs `npm run shortlist`, which applies the code gate to every draft.
-4. Sends each draft that passed the gate to the `dm-checker` agent.
+3. Runs `npm run shortlist <run>`, which applies the code gate to every draft.
+4. Sends each draft that passed the gate to the `dm-checker` agent, then records its verdict with `npm run check:record <run> <videoId> <pass|fail> <reason>`. Verdicts live in `out/checks-<run>.json`, tied to the sha256 of the exact draft checked. A draft is ready only when the gate passes and a verdict matches its current text. If the draft changes after the check, the shortlist says "needs re-check".
 5. Revises a failed draft once. A second failure stays blocked for you.
 
 **The code gate** (`src/gate.ts`) rejects a draft that has an em dash, runs over 90 words, uses a hype word from `config/banned-words.txt`, doesn't name the video, has more or fewer than one question mark, or matches an AI-writing tell from `config/ai-tells.txt`. It accepts the full video title or its core: the text before the first `|`, without emoji.

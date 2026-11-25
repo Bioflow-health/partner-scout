@@ -9,6 +9,7 @@ import {
   loadSearchTerms,
 } from "./config";
 import type { SearchTerm } from "./config";
+import { draftHash, parseChecks, recordVerdict } from "./checks";
 import { newestFile, writeNew } from "./files";
 import { filterCandidates, PARTNER_BAND } from "./filter";
 import { checkDraft } from "./gate";
@@ -120,6 +121,7 @@ const writeShortlist = async (run: string) => {
   const drafts = await readJson<{ entries: DraftEntry[] }>(
     `${OUT_DIR}/drafts-${run}.json`,
   );
+  const verdicts = await loadChecks(run);
   const gateConfig = {
     bannedWords: await loadBannedWords(),
     aiTells: await loadAiTells(),
@@ -136,6 +138,7 @@ const writeShortlist = async (run: string) => {
           gateConfig,
         ),
       ),
+      verdicts: verdicts.filter((v) => v.videoId === candidate.videoId),
     };
   });
   const path = await writeNew(
@@ -154,9 +157,49 @@ const writeShortlist = async (run: string) => {
         ? ` | gate: ${gate.failures.map((f) => `${f.rule} (${f.detail})`).join("; ")}`
         : "";
     console.log(
-      `${row.rank}. ${row.candidate.channelTitle.trim()} | ${entryStatus(row.entry, row.gates)}${failures}`,
+      `${row.rank}. ${row.candidate.channelTitle.trim()} | ${entryStatus(row.entry, row.gates, row.verdicts)}${failures}`,
     );
   }
+};
+
+const checksPath = (run: string) => `${OUT_DIR}/checks-${run}.json`;
+
+const loadChecks = async (run: string) => {
+  const json = await readJson<unknown>(checksPath(run));
+  return json === undefined ? [] : parseChecks(json, checksPath(run));
+};
+
+const recordCheck = async ({
+  run,
+  videoId,
+  pass,
+  reason,
+}: {
+  run: string;
+  videoId: string;
+  pass: boolean;
+  reason: string;
+}) => {
+  const draftsPath = `${OUT_DIR}/drafts-${run}.json`;
+  const drafts = await readJson<{ entries: DraftEntry[] }>(draftsPath);
+  const draft = drafts?.entries
+    .find((entry) => entry.videoId === videoId)
+    ?.attempts.at(-1)?.draft;
+  if (draft === undefined) {
+    throw new Error(`${draftsPath} has no draft for ${videoId}.`);
+  }
+  const verdict = { videoId, draftSha256: draftHash(draft), pass, reason };
+  await writeFile(
+    checksPath(run),
+    JSON.stringify(
+      { checks: recordVerdict(await loadChecks(run), verdict) },
+      null,
+      2,
+    ),
+  );
+  console.log(
+    `Recorded ${pass ? "pass" : "fail"} for ${videoId} in ${checksPath(run)} (draft sha256 ${verdict.draftSha256.slice(0, 12)}).`,
+  );
 };
 
 const warnAboutOrphanedDrafts = async (
@@ -314,6 +357,7 @@ const main = async () => {
     return;
   }
   if (command.kind === "learn") return learn();
+  if (command.kind === "check") return recordCheck(command);
   if (command.kind === "shortlist") {
     return writeShortlist(command.run ?? (await newestRun()));
   }

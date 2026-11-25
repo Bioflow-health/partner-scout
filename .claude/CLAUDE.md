@@ -22,6 +22,7 @@ Partner Scout finds YouTube creators worth a personal partnership message and dr
 - `npm run shortlist [run]`: renders the run's shortlist (the newest run by default) from `out/drafts-<run>.json` and runs the code gate on every draft. No API calls.
 - A run is named after its cache file (`Run: 2026-11-24-2`). Generated files are never overwritten: a second replay of the same cache is `<run>-v2`, and a changed re-render is `shortlist-<run>-v2.md`.
 - `npm run learn`: summarizes `config/outcomes.csv` (rows with channel_id `EXAMPLE` are ignored). No API calls.
+- `npm run check:record <run> <videoId> <pass|fail> <reason>`: stores a dm-checker verdict in `out/checks-<run>.json` with the sha256 of the current draft. A draft is ready only when the gate passes and a verdict matches its current text.
 - `npm test`, `npm run typecheck`, `npm run lint`, `npm run format:check`: all must pass before a commit.
 
 ## Secrets and quota

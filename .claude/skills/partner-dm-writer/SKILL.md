@@ -19,8 +19,8 @@ You draft first-contact DMs to YouTube creators about Blotato's partner program.
 2. **Not a fit:** record `"fit": false` and a one-line reason that starts with `skip:`. Write no draft.
 3. **A fit:** record `"fit": true`, a one-line reason, and one draft as the first attempt.
 4. Write everything to `out/drafts-<run>.json` (format below). Then run `npm run shortlist <run>`, which runs the code gate on every draft.
-5. Send each draft that passed the gate to the `dm-checker` agent, with the candidate's data. Record its verdict on that attempt.
-6. A draft that fails the gate or the checker gets **one** revision. Append a second attempt that fixes the stated reasons, run `npm run shortlist <run>`, then run the checker again. Never revise twice. A second failure stays blocked for the human.
+5. Send each draft that passed the gate to the `dm-checker` agent, giving it the run name and the videoId (it reads the draft and the creator data itself). Record its verdict with `npm run check:record <run> <videoId> <pass|fail> <reason>`. That command stores the verdict in `out/checks-<run>.json` with the sha256 of the exact draft checked. A draft is ready only when the gate passes and a verdict matches its current text; editing a draft after it was checked shows "needs re-check".
+6. A draft that fails the gate or the checker gets **one** revision. Append a second attempt that fixes the stated reasons, run `npm run shortlist <run>`, then run the checker again and record its verdict. Never revise twice. A second failure stays blocked for the human.
 7. Finish with `npm run shortlist <run>`.
 
 ## Draft rules
@@ -52,12 +52,7 @@ You draft first-contact DMs to YouTube creators about Blotato's partner program.
       "videoId": "the candidate's videoId",
       "fit": true,
       "reason": "teaches an AI clipping workflow for Shorts and Reels",
-      "attempts": [
-        {
-          "draft": "the DM text",
-          "checker": { "pass": true, "reason": "the checker's reason" }
-        }
-      ]
+      "attempts": [{ "draft": "the DM text" }]
     },
     {
       "videoId": "another videoId",
@@ -69,4 +64,4 @@ You draft first-contact DMs to YouTube creators about Blotato's partner program.
 }
 ```
 
-Never write a gate result into this file. `npm run shortlist <run>` computes it from the draft text every time.
+Never write a gate result or a checker verdict into this file. `npm run shortlist <run>` computes the gate from the draft text every time, and checker verdicts live only in `out/checks-<run>.json`, written by `npm run check:record`.

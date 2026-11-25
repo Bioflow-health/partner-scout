@@ -18,7 +18,8 @@
     "shortlist": "tsx src/cli.ts shortlist",
     "learn": "tsx src/cli.ts learn",
     "scout:live": "tsx src/cli.ts live",
-    "scout:cached": "tsx src/cli.ts cached"
+    "scout:cached": "tsx src/cli.ts cached",
+    "check:record": "tsx src/cli.ts check"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

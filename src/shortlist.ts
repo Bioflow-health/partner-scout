@@ -1,9 +1,9 @@
+import { draftHash } from "./checks";
+import type { CheckVerdict } from "./checks";
 import type { GateResult } from "./gate";
 import type { Scored } from "./score";
 
-export type CheckerResult = { pass: boolean; reason: string };
-
-export type Attempt = { draft: string; checker?: CheckerResult };
+export type Attempt = { draft: string };
 
 export type DraftEntry = {
   videoId: string;
@@ -17,6 +17,7 @@ export type EntryStatus =
   | "skipped"
   | "pending-revision"
   | "pending-checker"
+  | "needs-recheck"
   | "ready"
   | "blocked";
 
@@ -25,6 +26,7 @@ export type ShortlistRow = {
   candidate: Scored;
   entry: DraftEntry | undefined;
   gates: GateResult[];
+  verdicts: CheckVerdict[];
 };
 
 export const orphanedDrafts = (
@@ -35,9 +37,21 @@ export const orphanedDrafts = (
   return [...new Set(draftVideoIds)].filter((id) => !candidates.has(id));
 };
 
+const verdictFor = (
+  verdicts: readonly CheckVerdict[],
+  videoId: string,
+  draft: string,
+) => {
+  const hash = draftHash(draft);
+  return verdicts.find(
+    (verdict) => verdict.videoId === videoId && verdict.draftSha256 === hash,
+  );
+};
+
 export const entryStatus = (
   entry: DraftEntry | undefined,
   gates: readonly GateResult[],
+  verdicts: readonly CheckVerdict[],
 ): EntryStatus => {
   if (!entry) return "pending-draft";
   if (!entry.fit) return "skipped";
@@ -46,8 +60,17 @@ export const entryStatus = (
   if (!attempt || !gate) return "pending-draft";
   const revised = entry.attempts.length > 1;
   if (!gate.pass) return revised ? "blocked" : "pending-revision";
-  if (!attempt.checker) return "pending-checker";
-  if (!attempt.checker.pass) return revised ? "blocked" : "pending-revision";
+  const verdict = verdictFor(verdicts, entry.videoId, attempt.draft);
+  if (!verdict) {
+    const earlier = new Set(
+      entry.attempts.slice(0, -1).map((a) => draftHash(a.draft)),
+    );
+    const stale = verdicts.some(
+      (v) => v.videoId === entry.videoId && !earlier.has(v.draftSha256),
+    );
+    return stale ? "needs-recheck" : "pending-checker";
+  }
+  if (!verdict.pass) return revised ? "blocked" : "pending-revision";
   return "ready";
 };
 
@@ -60,10 +83,12 @@ const gateLine = (gate: GateResult | undefined) =>
       ? "pass"
       : `fail (${gate.failures.map((f) => `${f.rule}: ${f.detail}`).join("; ")})`;
 
-const checkerLine = (attempt: Attempt) =>
-  !attempt.checker
-    ? "not run yet"
-    : `${attempt.checker.pass ? "pass" : "fail"}. ${attempt.checker.reason}`;
+const checkerLine = (verdict: CheckVerdict | undefined, stale: boolean) =>
+  verdict
+    ? `${verdict.pass ? "pass" : "fail"}. ${verdict.reason}`
+    : stale
+      ? "needs re-check: the draft changed after the checker saw it"
+      : "not run yet";
 
 const quote = (text: string) =>
   text
@@ -79,10 +104,20 @@ const DECISION: Record<EntryStatus, string> = {
   "pending-draft": "**Decision:** waiting for a draft",
   "pending-revision": "**Decision:** waiting for the writer's one revision",
   "pending-checker": "**Decision:** waiting for the checker",
+  "needs-recheck":
+    "**Decision:** waiting for a re-check (the draft changed after the checker saw it)",
 };
 
-const renderRow = ({ rank, candidate, entry, gates }: ShortlistRow) => {
-  const status = entryStatus(entry, gates);
+const renderRow = ({
+  rank,
+  candidate,
+  entry,
+  gates,
+  verdicts,
+}: ShortlistRow) => {
+  const status = entryStatus(entry, gates, verdicts);
+  const verdictOf = (attempt: Attempt) =>
+    verdictFor(verdicts, candidate.videoId, attempt.draft);
   const lines = [
     `## ${rank}. ${candidate.channelTitle.trim()}`,
     "",
@@ -102,7 +137,7 @@ const renderRow = ({ rank, candidate, entry, gates }: ShortlistRow) => {
       quote(final.draft),
       "",
       `- Code gate: ${gateLine(gates.at(-1))}`,
-      `- Checker: ${checkerLine(final)}`,
+      `- Checker: ${checkerLine(verdictOf(final), status === "needs-recheck")}`,
     );
   }
   attempts.slice(0, -1).forEach((earlier, index) => {
@@ -113,7 +148,7 @@ const renderRow = ({ rank, candidate, entry, gates }: ShortlistRow) => {
       quote(earlier.draft),
       "",
       `- Code gate: ${gateLine(gates[index])}`,
-      `- Checker: ${checkerLine(earlier)}`,
+      `- Checker: ${checkerLine(verdictOf(earlier), false)}`,
     );
   });
 
@@ -128,7 +163,7 @@ export const renderShortlist = (
 ) => {
   const counts = new Map<EntryStatus, number>();
   for (const row of rows) {
-    const status = entryStatus(row.entry, row.gates);
+    const status = entryStatus(row.entry, row.gates, row.verdicts);
     counts.set(status, (counts.get(status) ?? 0) + 1);
   }
   const summary = [...counts]

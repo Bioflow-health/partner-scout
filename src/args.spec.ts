@@ -15,6 +15,34 @@ describe("parseArgs", () => {
       command: { kind: "shortlist", run: "2026-11-24-2" },
     },
     { args: ["learn"], command: { kind: "learn" } },
+    {
+      args: [
+        "check",
+        "2026-11-24-2",
+        "TG0RWzk4nK0",
+        "pass",
+        "grounded",
+        "and",
+        "specific",
+      ],
+      command: {
+        kind: "check",
+        run: "2026-11-24-2",
+        videoId: "TG0RWzk4nK0",
+        pass: true,
+        reason: "grounded and specific",
+      },
+    },
+    {
+      args: ["check", "r", "v1", "fail", "praise: -ish wording"],
+      command: {
+        kind: "check",
+        run: "r",
+        videoId: "v1",
+        pass: false,
+        reason: "praise: -ish wording",
+      },
+    },
   ])("reads $args as a $command.kind command", ({ args, command }) => {
     expect(parseArgs(args)).toEqual(command);
   });
@@ -31,6 +59,15 @@ describe("parseArgs", () => {
     { why: "the old --cached flag", args: ["--cached", "out/cache/x.json"] },
     { why: "two run names", args: ["shortlist", "a", "b"] },
     { why: "an argument to learn", args: ["learn", "x"] },
+    { why: "a check with no reason", args: ["check", "r", "v1", "pass"] },
+    {
+      why: "a check verdict that is not pass or fail",
+      args: ["check", "r", "v1", "ok", "fine"],
+    },
+    {
+      why: "a flag where a check run goes",
+      args: ["check", "--run", "v1", "pass", "x"],
+    },
   ])("asks for usage on $why, so nothing runs by accident", ({ args }) => {
     expect(parseArgs(args)).toEqual({ kind: "usage" });
   });
@@ -45,6 +82,8 @@ describe("USAGE", () => {
         "  npm run scout:cached [cache-file]  Re-score a saved cache (the newest by default). No API calls.",
         "  npm run shortlist [run]            Render a run's shortlist (the newest run by default). No API calls.",
         "  npm run learn                      Summarize config/outcomes.csv. No API calls.",
+        "  npm run check:record <run> <videoId> <pass|fail> <reason>",
+        "                                     Record a dm-checker verdict for the current draft. No API calls.",
         "",
         "Only scout:live spends YouTube quota.",
       ].join("\n"),
