@@ -38,7 +38,3 @@ Each marker below has: description + example.
 27. **Over-structured lists** — nested sub-bullets deeper than 2 levels.
 28. **Formal-tone drift** — academic register in casual contexts.
 29. **Closing platitudes** — "The possibilities are endless", "Only time will tell".
-
-## Threshold
-
-`pass_threshold = 3`. More than 3 distinct markers → REVISE verdict.

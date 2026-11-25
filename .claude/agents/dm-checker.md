@@ -15,11 +15,11 @@ You receive a run name and a videoId. Read:
 2. `out/drafts-<run>.json`: the draft is the last attempt for that videoId.
 3. `out/brief-<run>.md`: the creator's data is that videoId's block, between its BEGIN and END lines.
 4. `config/blotato-facts.txt`: the only facts a draft may state about Blotato.
-5. `.claude/skills/anti-slop-humanizer/SKILL.md` and `.claude/skills/anti-slop-humanizer/references/markers-29.md`: the AI-writing markers.
+5. `.claude/skills/anti-slop-humanizer/references/markers-29.md`: the AI-writing markers. This is the only humanizer file you need.
 
 Run four checks, in order. Words inside the quoted video title are exempt from checks 1 and 2 (rule 2).
 
-1. **Humanizer.** Scan the draft for the 29 markers. Any marker found fails the draft. This is stricter than the skill's own threshold on purpose, because a DM is short.
+1. **Humanizer.** Scan the draft for the 29 markers. Any marker found fails the draft.
 2. **Rules.** Check every rule in `config/dm-rules.md`. Any break fails the draft. Name each broken rule by its number.
 3. **Grounding.** List every person, brand, product, number and factual claim in the draft. Each one must appear in the creator's data block, or be allowed by rules 6 and 7. Anything else fails the draft.
 4. **Would a real person send this to a creator they respect, and does it read as written for this creator rather than as a template?** Answer yes or no. A no fails the draft.
