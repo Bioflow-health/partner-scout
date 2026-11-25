@@ -45,7 +45,15 @@ export YOUTUBE_API_KEY=your-key-here
 
 There's no `.env` file. Keep the key out of the repo.
 
-A live run costs about 510 quota units: 100 per search term, plus a few units for video and channel details. Keep it to five search terms or fewer per run.
+A live run costs about 510 quota units: 100 per search term, plus a few units for video and channel details. The scout refuses more than five search terms.
+
+**The drafting session never needs the key.** Only `npm run scout:live` uses it. Run that in its own terminal. Then open Claude Code in a shell that doesn't have `YOUTUBE_API_KEY`: a new terminal, or
+
+```bash
+env -u YOUTUBE_API_KEY claude
+```
+
+The writer and the checker read text written by strangers, so the session they run in should have nothing worth stealing. Everything they run (`scout:cached`, `shortlist`, `check:record`, `learn`) works without the key.
 
 ## Step 3: Choose your search terms
 
@@ -95,7 +103,7 @@ Only scout:live spends YouTube quota.
 
 ## Step 5: Draft and check the DMs
 
-Open Claude Code in this folder and ask it to use the `partner-dm-writer` skill on today's candidates. The skill:
+Open Claude Code in this folder, in a shell without `YOUTUBE_API_KEY` (see Step 2), and ask it to use the `partner-dm-writer` skill on the run the scout printed. The skill:
 
 1. Judges each creator's topic fit and skips the ones that don't fit, with a reason. Vendors demoing their own product are skipped too.
 2. Drafts one DM per fit, following `config/dm-rules.md`, the one rulebook the checker also uses. Each draft quotes the video's title, mentions one specific detail in neutral words, asks exactly one question (the partner-program ask), uses no numbers outside the quoted title, and stays at 90 words or fewer. It doesn't praise the creator and doesn't pretend the sender watched the video. About Blotato it says only what `config/blotato-facts.txt` says, with at most one clause that applies it to the creator's own work.

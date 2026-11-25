@@ -29,6 +29,7 @@ Partner Scout finds YouTube creators worth a personal partnership message and dr
 
 - The code reads the key only from `process.env.YOUTUBE_API_KEY` and sends it in the `x-goog-api-key` header, never in a URL.
 - Never print, log, write or commit the key. There is no `.env` file. Each user sets `YOUTUBE_API_KEY` in their own shell (see the README).
+- The drafting session never needs the key. Run `npm run scout:live` in its own terminal, and run the writer and checker in a shell without `YOUTUBE_API_KEY` (a new terminal, or `env -u YOUTUBE_API_KEY claude`).
 - Budget per live run: 5 search terms or fewer. A search costs 100 units; `videos.list` and `channels.list` cost 1 unit per 50 IDs. One run is about 510 units.
 - Comparing pivots? Use `npm run scout:cached` so every variant scores the same data.
 
