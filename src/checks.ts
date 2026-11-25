@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isObject } from "./json";
 
 export type CheckVerdict = {
   videoId: string;
@@ -11,9 +12,6 @@ const SHA256 = /^[0-9a-f]{64}$/;
 
 export const draftHash = (draft: string): string =>
   createHash("sha256").update(draft, "utf8").digest("hex");
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 export const parseChecks = (json: unknown, path: string): CheckVerdict[] => {
   if (!isObject(json) || !Array.isArray(json.checks)) {

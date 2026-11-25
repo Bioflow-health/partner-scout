@@ -10,6 +10,7 @@ import {
 } from "./config";
 import type { SearchTerm } from "./config";
 import { draftHash, parseChecks, recordVerdict } from "./checks";
+import { parseDrafts } from "./drafts";
 import { newestFile, writeNew } from "./files";
 import { filterCandidates, PARTNER_BAND } from "./filter";
 import { checkDraft } from "./gate";
@@ -110,7 +111,7 @@ const newestRun = async () => {
   return runOf(path);
 };
 
-const writeShortlist = async (run: string) => {
+const loadCandidates = async (run: string) => {
   const candidatesPath = `${OUT_DIR}/candidates-${run}.json`;
   const candidates = await readJson<CandidatesFile>(candidatesPath);
   if (!candidates) {
@@ -118,16 +119,35 @@ const writeShortlist = async (run: string) => {
       `No ${candidatesPath}. Run npm run scout:cached (free) or npm run scout:live first.`,
     );
   }
-  const drafts = await readJson<{ entries: DraftEntry[] }>(
-    `${OUT_DIR}/drafts-${run}.json`,
-  );
+  return candidates;
+};
+
+const draftsPath = (run: string) => `${OUT_DIR}/drafts-${run}.json`;
+
+const loadDrafts = async (
+  run: string,
+  candidates: CandidatesFile,
+): Promise<DraftEntry[]> => {
+  const json = await readJson<unknown>(draftsPath(run));
+  return json === undefined
+    ? []
+    : parseDrafts(
+        json,
+        draftsPath(run),
+        new Set(candidates.entries.map((candidate) => candidate.videoId)),
+      );
+};
+
+const writeShortlist = async (run: string) => {
+  const candidates = await loadCandidates(run);
+  const drafts = await loadDrafts(run, candidates);
   const verdicts = await loadChecks(run);
   const gateConfig = {
     bannedWords: await loadBannedWords(),
     aiTells: await loadAiTells(),
   };
   const rows: ShortlistRow[] = candidates.entries.map((candidate, index) => {
-    const entry = drafts?.entries.find((e) => e.videoId === candidate.videoId);
+    const entry = drafts.find((e) => e.videoId === candidate.videoId);
     return {
       rank: index + 1,
       candidate,
@@ -180,13 +200,12 @@ const recordCheck = async ({
   pass: boolean;
   reason: string;
 }) => {
-  const draftsPath = `${OUT_DIR}/drafts-${run}.json`;
-  const drafts = await readJson<{ entries: DraftEntry[] }>(draftsPath);
-  const draft = drafts?.entries
+  const drafts = await loadDrafts(run, await loadCandidates(run));
+  const draft = drafts
     .find((entry) => entry.videoId === videoId)
     ?.attempts.at(-1)?.draft;
   if (draft === undefined) {
-    throw new Error(`${draftsPath} has no draft for ${videoId}.`);
+    throw new Error(`${draftsPath(run)} has no draft for ${videoId}.`);
   }
   const verdict = { videoId, draftSha256: draftHash(draft), pass, reason };
   await writeFile(
