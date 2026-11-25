@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { GateResult } from "./gate";
-import { entryStatus } from "./shortlist";
+import { entryStatus, orphanedDrafts } from "./shortlist";
 import type { Attempt, DraftEntry } from "./shortlist";
 
 const gatePass: GateResult = { pass: true, failures: [] };
@@ -85,5 +85,17 @@ describe("entryStatus", () => {
     },
   ])("is $expected for $state", ({ entry, gates, expected }) => {
     expect(entryStatus(entry, gates)).toBe(expected);
+  });
+});
+
+describe("orphanedDrafts", () => {
+  test("lists drafted videos that are not in the new top 10, in draft order, once each", () => {
+    expect(
+      orphanedDrafts(["v3", "v1", "v9", "v3", "v7"], ["v1", "v2", "v3"]),
+    ).toEqual(["v9", "v7"]);
+  });
+
+  test("returns nothing when every drafted video is still a candidate", () => {
+    expect(orphanedDrafts(["v1", "v2"], ["v2", "v1", "v5"])).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 ---
 name: partner-dm-writer
-description: Judge each shortlisted creator's topic fit, then draft one short, personal first-contact DM per fit for a human to approve. Use after npm run scout:live or npm run scout:cached has written out/candidates-<date>.json.
+description: Judge each shortlisted creator's topic fit, then draft one short, personal first-contact DM per fit for a human to approve. Use after npm run scout:live or npm run scout:cached has written out/candidates-<run>.json.
 ---
 
 # Partner DM writer
@@ -11,17 +11,17 @@ You draft first-contact DMs to YouTube creators about Blotato's partner program.
 
 ## Input
 
-`out/candidates-<date>.json`: the top 10 from `npm run scout:live` or `npm run scout:cached`, with each video's title, description, views and channel subscribers. Use only this data.
+`out/candidates-<run>.json` (`<run>` is the run name the scout prints): the top 10 from `npm run scout:live` or `npm run scout:cached`, with each video's title, description, views and channel subscribers. Use only this data.
 
 ## Steps
 
 1. For each candidate, in rank order, judge topic fit with check 2 from `PIVOTS.md`: the found video is a how-to or walkthrough (not news, a reaction or an ad), and its subject is creating, repurposing, scheduling or automating social or marketing content, or building that kind of workflow with n8n, Make, Claude or MCP. A general coding tutorial doesn't count. Judge from the title and description. A vendor or company channel demoing its own product is not a fit either: record `skip: vendor channel`.
 2. **Not a fit:** record `"fit": false` and a one-line reason that starts with `skip:`. Write no draft.
 3. **A fit:** record `"fit": true`, a one-line reason, and one draft as the first attempt.
-4. Write everything to `out/drafts-<date>.json` (format below). Then run `npm run shortlist`, which runs the code gate on every draft.
+4. Write everything to `out/drafts-<run>.json` (format below). Then run `npm run shortlist <run>`, which runs the code gate on every draft.
 5. Send each draft that passed the gate to the `dm-checker` agent, with the candidate's data. Record its verdict on that attempt.
-6. A draft that fails the gate or the checker gets **one** revision. Append a second attempt that fixes the stated reasons, run `npm run shortlist`, then run the checker again. Never revise twice. A second failure stays blocked for the human.
-7. Finish with `npm run shortlist`.
+6. A draft that fails the gate or the checker gets **one** revision. Append a second attempt that fixes the stated reasons, run `npm run shortlist <run>`, then run the checker again. Never revise twice. A second failure stays blocked for the human.
+7. Finish with `npm run shortlist <run>`.
 
 ## Draft rules
 
@@ -69,4 +69,4 @@ You draft first-contact DMs to YouTube creators about Blotato's partner program.
 }
 ```
 
-Never write a gate result into this file. `npm run shortlist` computes it from the draft text every time.
+Never write a gate result into this file. `npm run shortlist <run>` computes it from the draft text every time.

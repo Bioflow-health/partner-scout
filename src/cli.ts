@@ -1,4 +1,5 @@
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { readFile, readdir, writeFile } from "node:fs/promises";
+import { basename } from "node:path";
 import { parseArgs, USAGE } from "./args";
 import {
   loadAiTells,
@@ -7,96 +8,24 @@ import {
   loadSearchTerms,
 } from "./config";
 import type { SearchTerm } from "./config";
+import { newestFile, writeNew } from "./files";
 import { filterCandidates, PARTNER_BAND } from "./filter";
 import { checkDraft } from "./gate";
 import { parseOutcomes, summarizeOutcomes } from "./learn";
 import { rankByMomentum } from "./score";
 import type { Scored } from "./score";
-import { entryStatus, renderShortlist } from "./shortlist";
+import { entryStatus, orphanedDrafts, renderShortlist } from "./shortlist";
 import type { DraftEntry, ShortlistRow } from "./shortlist";
+import type { ChannelId } from "./types";
 import { fetchRun, toCandidates } from "./youtube";
 import type { RawRun } from "./youtube";
-import type { ChannelId } from "./types";
 
 const OUT_DIR = "out";
 const CACHE_DIR = "out/cache";
 const TOP = 10;
+const VERSION = { separator: "-v" };
 
-const newestCachePath = async () => {
-  const files = (await readdir(CACHE_DIR).catch(() => [])).filter((file) =>
-    file.endsWith(".json"),
-  );
-  const dated = await Promise.all(
-    files.map(async (file) => ({
-      path: `${CACHE_DIR}/${file}`,
-      modified: (await stat(`${CACHE_DIR}/${file}`)).mtimeMs,
-    })),
-  );
-  const newest = dated.sort((a, b) => b.modified - a.modified)[0];
-  if (!newest) {
-    throw new Error(`No cache in ${CACHE_DIR}/. Run npm run scout:live first.`);
-  }
-  return newest.path;
-};
-
-const loadCachedRun = async (requestedPath: string | undefined) => {
-  const path = requestedPath ?? (await newestCachePath());
-  const run = JSON.parse(await readFile(path, "utf8")) as RawRun;
-  if (run.complete === false) {
-    console.warn(
-      `Warning: ${path} is from a run that stopped early, so some videos or channels have no details.`,
-    );
-  }
-  return { run, source: `cache ${path} (0 new quota units)` };
-};
-
-const saveRun = async (run: RawRun, date: string) => {
-  await mkdir(CACHE_DIR, { recursive: true });
-  for (let copy = 1; ; copy += 1) {
-    const path = `${CACHE_DIR}/${date}${copy === 1 ? "" : `-${copy}`}.json`;
-    try {
-      await writeFile(path, JSON.stringify(run, null, 2), { flag: "wx" });
-      return path;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-    }
-  }
-};
-
-const loadLiveRun = async (phrases: readonly string[]) => {
-  const apiKey = process.env.YOUTUBE_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "YOUTUBE_API_KEY is not set. Export it in your shell, then run again.",
-    );
-  }
-  const now = new Date();
-  let path: string | undefined;
-  const saveProgress = async (snapshot: RawRun) => {
-    if (path) await writeFile(path, JSON.stringify(snapshot, null, 2));
-    else path = await saveRun(snapshot, now.toLocaleDateString("en-CA"));
-  };
-  try {
-    const run = await fetchRun(phrases, apiKey, now, {
-      onProgress: saveProgress,
-    });
-    return {
-      run,
-      source: `YouTube API (${run.unitsUsed} quota units), saved to ${path}`,
-    };
-  } catch (error) {
-    if (!path) throw error;
-    throw new Error(
-      `${error instanceof Error ? error.message : String(error)}\nThe responses received so far are saved in ${path}. Replay them without new quota.`,
-      { cause: error },
-    );
-  }
-};
-
-const formatCount = (value: number) => value.toLocaleString("en-US");
-
-const today = () => new Date().toLocaleDateString("en-CA");
-
+type LoadedRun = { run: RawRun; source: string; cachePath: string };
 type CandidatesFile = { source: string; entries: Scored[] };
 
 const readJson = async <T>(path: string): Promise<T | undefined> => {
@@ -108,17 +37,87 @@ const readJson = async <T>(path: string): Promise<T | undefined> => {
   }
 };
 
-const writeShortlist = async (date: string) => {
-  const candidates = await readJson<CandidatesFile>(
-    `${OUT_DIR}/candidates-${date}.json`,
-  );
+const loadCachedRun = async (
+  requestedPath: string | undefined,
+): Promise<LoadedRun> => {
+  const cachePath = requestedPath ?? (await newestFile(CACHE_DIR, "", ".json"));
+  if (!cachePath) {
+    throw new Error(`No cache in ${CACHE_DIR}/. Run npm run scout:live first.`);
+  }
+  const run = JSON.parse(await readFile(cachePath, "utf8")) as RawRun;
+  if (run.complete === false) {
+    console.warn(
+      `Warning: ${cachePath} is from a run that stopped early, so some videos or channels have no details.`,
+    );
+  }
+  return { run, source: `cache ${cachePath} (0 new quota units)`, cachePath };
+};
+
+const loadLiveRun = async (phrases: readonly string[]): Promise<LoadedRun> => {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "YOUTUBE_API_KEY is not set. Export it in your shell, then run again.",
+    );
+  }
+  const now = new Date();
+  let cachePath: string | undefined;
+  const saveProgress = async (snapshot: RawRun) => {
+    const content = JSON.stringify(snapshot, null, 2);
+    if (cachePath) await writeFile(cachePath, content);
+    else {
+      cachePath = await writeNew(
+        CACHE_DIR,
+        now.toLocaleDateString("en-CA"),
+        ".json",
+        content,
+      );
+    }
+  };
+  try {
+    const run = await fetchRun(phrases, apiKey, now, {
+      onProgress: saveProgress,
+    });
+    const path = cachePath ?? "";
+    return {
+      run,
+      source: `YouTube API (${run.unitsUsed} quota units), saved to ${path}`,
+      cachePath: path,
+    };
+  } catch (error) {
+    if (!cachePath) throw error;
+    throw new Error(
+      `${error instanceof Error ? error.message : String(error)}\nThe responses received so far are saved in ${cachePath}. Replay them with npm run scout:cached ${cachePath} (no new quota).`,
+      { cause: error },
+    );
+  }
+};
+
+const formatCount = (value: number) => value.toLocaleString("en-US");
+
+const runOf = (candidatesPath: string) =>
+  basename(candidatesPath, ".json").slice("candidates-".length);
+
+const newestRun = async () => {
+  const path = await newestFile(OUT_DIR, "candidates-", ".json");
+  if (!path) {
+    throw new Error(
+      `No ${OUT_DIR}/candidates-*.json. Run npm run scout:cached (free) or npm run scout:live first.`,
+    );
+  }
+  return runOf(path);
+};
+
+const writeShortlist = async (run: string) => {
+  const candidatesPath = `${OUT_DIR}/candidates-${run}.json`;
+  const candidates = await readJson<CandidatesFile>(candidatesPath);
   if (!candidates) {
     throw new Error(
-      `No ${OUT_DIR}/candidates-${date}.json. Run npm run scout:cached (free) or npm run scout:live first.`,
+      `No ${candidatesPath}. Run npm run scout:cached (free) or npm run scout:live first.`,
     );
   }
   const drafts = await readJson<{ entries: DraftEntry[] }>(
-    `${OUT_DIR}/drafts-${date}.json`,
+    `${OUT_DIR}/drafts-${run}.json`,
   );
   const gateConfig = {
     bannedWords: await loadBannedWords(),
@@ -138,8 +137,13 @@ const writeShortlist = async (date: string) => {
       ),
     };
   });
-  const path = `${OUT_DIR}/shortlist-${date}.md`;
-  await writeFile(path, renderShortlist(date, candidates.source, rows));
+  const path = await writeNew(
+    OUT_DIR,
+    `shortlist-${run}`,
+    ".md",
+    renderShortlist(run, candidates.source, rows),
+    { ...VERSION, reuseIfSame: true },
+  );
 
   console.log(`\nShortlist: ${path}`);
   for (const row of rows) {
@@ -151,6 +155,33 @@ const writeShortlist = async (date: string) => {
     console.log(
       `${row.rank}. ${row.candidate.channelTitle.trim()} | ${entryStatus(row.entry, row.gates)}${failures}`,
     );
+  }
+};
+
+const warnAboutOrphanedDrafts = async (
+  cacheName: string,
+  run: string,
+  candidates: readonly Scored[],
+) => {
+  const names = (await readdir(OUT_DIR).catch(() => [])).filter(
+    (name) =>
+      name.startsWith(`drafts-${cacheName}`) &&
+      name.endsWith(".json") &&
+      name !== `drafts-${run}.json`,
+  );
+  for (const name of names) {
+    const drafts = await readJson<{ entries?: { videoId?: unknown }[] }>(
+      `${OUT_DIR}/${name}`,
+    );
+    const orphans = orphanedDrafts(
+      (drafts?.entries ?? []).map((entry) => String(entry.videoId)),
+      candidates.map((candidate) => candidate.videoId),
+    );
+    if (orphans.length > 0) {
+      console.warn(
+        `Warning: ${OUT_DIR}/${name} has drafts for ${orphans.length} videos that are not in this run's top ${TOP}: ${orphans.join(", ")}`,
+      );
+    }
   }
 };
 
@@ -207,7 +238,7 @@ const learn = async () => {
 
 const scout = async (
   terms: SearchTerm[],
-  { run, source }: { run: RawRun; source: string },
+  { run, source, cachePath }: LoadedRun,
 ) => {
   const candidates = toCandidates(run);
   const { kept, dropped } = filterCandidates(candidates, {
@@ -234,7 +265,8 @@ const scout = async (
   );
   console.log(`\nTop ${TOP} by momentum (views / subscribers):`);
 
-  ranked.slice(0, TOP).forEach((entry, index) => {
+  const top = ranked.slice(0, TOP);
+  top.forEach((entry, index) => {
     console.log(
       `\n${index + 1}. ${entry.channelTitle} | momentum ${entry.momentum.toFixed(2)}`,
     );
@@ -244,20 +276,20 @@ const scout = async (
     );
   });
 
-  const date = today();
-  const candidatesFile: CandidatesFile = {
-    source,
-    entries: ranked.slice(0, TOP),
-  };
-  await mkdir(OUT_DIR, { recursive: true });
-  await writeFile(
-    `${OUT_DIR}/candidates-${date}.json`,
+  const cacheName = basename(cachePath, ".json");
+  const candidatesFile: CandidatesFile = { source, entries: top };
+  const candidatesPath = await writeNew(
+    OUT_DIR,
+    `candidates-${cacheName}`,
+    ".json",
     JSON.stringify(candidatesFile, null, 2),
+    VERSION,
   );
-  console.log(
-    `\nCandidates for the writer: ${OUT_DIR}/candidates-${date}.json`,
-  );
-  await writeShortlist(date);
+  const runName = runOf(candidatesPath);
+  console.log(`\nRun: ${runName}`);
+  console.log(`Candidates for the writer: ${candidatesPath}`);
+  await warnAboutOrphanedDrafts(cacheName, runName, top);
+  await writeShortlist(runName);
 };
 
 const main = async () => {
@@ -269,7 +301,7 @@ const main = async () => {
   }
   if (command.kind === "learn") return learn();
   if (command.kind === "shortlist") {
-    return writeShortlist(command.run ?? today());
+    return writeShortlist(command.run ?? (await newestRun()));
   }
   const terms = await loadSearchTerms();
   return scout(

@@ -64,11 +64,13 @@ Add your existing partners' channel IDs to `config/partners.csv` so they're neve
 npm run scout:live
 ```
 
-This is the only command that calls the YouTube API. It prints the top 10 and writes three files to `out/` (which git ignores):
+This is the only command that calls the YouTube API. It prints the top 10 and a run name taken from its cache file (for example `Run: 2026-11-24-2`), and writes these files to `out/` (which git ignores):
 
-- `out/cache/<date>.json`: the raw API responses, saved as each one arrives. A second run on the same day writes `<date>-2.json`, so nothing is overwritten.
-- `out/candidates-<date>.json`: the top 10, for the writer.
-- `out/shortlist-<date>.md`: the shortlist, which fills in as drafts are added.
+- `out/cache/<date>.json`: the raw API responses, saved as each one arrives. A second run on the same day writes `<date>-2.json`.
+- `out/candidates-<run>.json`: the top 10, for the writer.
+- `out/shortlist-<run>.md`: the shortlist, which fills in as drafts are added.
+
+Nothing is ever overwritten. Replaying the same cache again makes a new run, `<run>-v2`. Re-rendering a shortlist that changed writes `shortlist-<run>-v2.md`, so ticks you made in an earlier version stay put. If a new run drops creators that an older run from the same cache had drafts for, the scout warns you.
 
 To re-score saved data without any API calls or quota:
 
@@ -105,7 +107,7 @@ Open Claude Code in this folder and ask it to use the `partner-dm-writer` skill 
 
 ## Step 6: Approve, then send by hand
 
-Open `out/shortlist-<date>.md`. For each ready draft, watch the video first, then tick approve or skip. Send the approved messages yourself and add the program terms.
+Open `out/shortlist-<run>.md`. For each ready draft, watch the video first, then tick approve or skip. Send the approved messages yourself and add the program terms.
 
 ## Step 7: Log outcomes and learn
 

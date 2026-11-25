@@ -11,15 +11,16 @@ Partner Scout finds YouTube creators worth a personal partnership message and dr
 | 3 Score   | Momentum = video views / channel subscribers, ranked highest first                                                                             | `src/score.ts`                                |
 | 4 Draft   | Judge topic fit, then a personal DM per fit that names their video                                                                             | `.claude/skills/partner-dm-writer/`           |
 | 5 Check   | A code gate, then a separate checker agent (smaller model) that runs the anti-slop-humanizer; one revision on failure                          | `src/gate.ts`, `.claude/agents/dm-checker.md` |
-| 6 Approve | A human marks each ready draft approve or skip, then sends it by hand                                                                          | `out/shortlist-<date>.md`                     |
+| 6 Approve | A human marks each ready draft approve or skip, then sends it by hand                                                                          | `out/shortlist-<run>.md`                      |
 | 7 Learn   | A human logs each stage a creator reaches; a summary shows counts, conversions, the weakest step and results by search term                    | `config/outcomes.csv`, `npm run learn`        |
 
 ## Commands
 
-- `npm run scout:live`: the only command that calls the API. Searches YouTube, saves the raw responses to `out/cache/<date>.json` as they arrive (never overwritten; a second run that day gets `-2`), prints the ranked top 10, and writes `out/candidates-<date>.json` and `out/shortlist-<date>.md`.
+- `npm run scout:live`: the only command that calls the API. Searches YouTube, saves the raw responses to `out/cache/<date>.json` as they arrive (never overwritten; a second run that day gets `-2`), prints the ranked top 10, and writes `out/candidates-<run>.json` and `out/shortlist-<run>.md`.
 - `npm run scout:cached [path]`: re-scores the newest cache file, or the one named. No API calls, no quota.
 - `npm run scout` with no suffix, an unknown argument or `--help` prints the usage and exits 2. It never runs the scout.
-- `npm run shortlist`: re-renders the shortlist from `out/drafts-<date>.json` and runs the code gate on every draft. No API calls.
+- `npm run shortlist [run]`: renders the run's shortlist (the newest run by default) from `out/drafts-<run>.json` and runs the code gate on every draft. No API calls.
+- A run is named after its cache file (`Run: 2026-11-24-2`). Generated files are never overwritten: a second replay of the same cache is `<run>-v2`, and a changed re-render is `shortlist-<run>-v2.md`.
 - `npm run learn`: summarizes `config/outcomes.csv` (rows with channel_id `EXAMPLE` are ignored). No API calls.
 - `npm test`, `npm run typecheck`, `npm run lint`, `npm run format:check`: all must pass before a commit.
 

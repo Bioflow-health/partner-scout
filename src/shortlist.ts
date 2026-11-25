@@ -27,6 +27,14 @@ export type ShortlistRow = {
   gates: GateResult[];
 };
 
+export const orphanedDrafts = (
+  draftVideoIds: readonly string[],
+  candidateVideoIds: readonly string[],
+): string[] => {
+  const candidates = new Set(candidateVideoIds);
+  return [...new Set(draftVideoIds)].filter((id) => !candidates.has(id));
+};
+
 export const entryStatus = (
   entry: DraftEntry | undefined,
   gates: readonly GateResult[],
