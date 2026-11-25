@@ -1,6 +1,7 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { parseArgs, USAGE } from "./args";
+import { capDescription, renderWriterBrief } from "./brief";
 import {
   loadAiTells,
   loadBannedWords,
@@ -265,7 +266,10 @@ const scout = async (
   );
   console.log(`\nTop ${TOP} by momentum (views / subscribers):`);
 
-  const top = ranked.slice(0, TOP);
+  const top = ranked.slice(0, TOP).map((candidate) => ({
+    ...candidate,
+    description: capDescription(candidate.description),
+  }));
   top.forEach((entry, index) => {
     console.log(
       `\n${index + 1}. ${entry.channelTitle} | momentum ${entry.momentum.toFixed(2)}`,
@@ -286,8 +290,18 @@ const scout = async (
     VERSION,
   );
   const runName = runOf(candidatesPath);
+  const briefPath = await writeNew(
+    OUT_DIR,
+    `brief-${runName}`,
+    ".md",
+    renderWriterBrief(runName, top),
+    VERSION,
+  );
   console.log(`\nRun: ${runName}`);
-  console.log(`Candidates for the writer: ${candidatesPath}`);
+  console.log(
+    `Writer brief (untrusted creator text in marked blocks): ${briefPath}`,
+  );
+  console.log(`Candidates: ${candidatesPath}`);
   await warnAboutOrphanedDrafts(cacheName, runName, top);
   await writeShortlist(runName);
 };
