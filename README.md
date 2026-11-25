@@ -162,15 +162,42 @@ The first version didn't work, and the log says so. [`PIVOTS.md`](PIVOTS.md) set
 
 The bar of 5 isn't met yet. `PIVOTS.md` explains why and what to try next.
 
-## Limits
+## Known limits and next steps
+
+### Limits of the approach
 
 - YouTube only.
 - Nothing is ever sent. A human approves and sends every message.
 - Momentum looks at one recent video per channel, which favors one-off hits.
-- The 2,000-view screen for "could bring 10 customers a month" is a rough, optimistic proxy until the outcomes log has real numbers.
+- "Could bring 10 customers a month" is judged in `PIVOTS.md` with a rough, optimistic proxy (2,000 views on the found video). No code applies it, and the outcomes log will replace it with real numbers.
 - A model judges fit and writes the drafts, and a smaller model checks them. Either can be wrong, so a human reads every draft.
 
-## Next steps
+### Known issues, not fixed yet
+
+A full review of the repo found these. Each one is small, and none blocks a safe run. The ID is the review's.
+
+- **2.1** In the drafts code, a draft's video ID is a plain string rather than the branded `VideoId` type the rest of the code uses.
+- **2.2** The number formatter is written twice, and gate failures are printed one way on screen and another way in the shortlist.
+- **2.3** Several modules export types or helpers that nothing else imports, and the raw API type keeps a `publishedAt` field that is never read.
+- **2.4** A few names in `src/cli.ts` mean different things in different places (for example `entry` and `candidates`).
+- **2.6** Channels with no subscriber count are dropped by the filter, and the score code checks for them again.
+- **3.3** Some errors still lack context: a broken JSON file isn't named, and a network failure shows only "fetch failed".
+- **4.2** `NO_SIZE_LIMIT` is used only by tests, and two filter tests cover the same subscriber band.
+- **4.3** `loadBlotatoFacts` exists only for its spec; the checker reads the facts file directly.
+- **5.6** `npm run learn` credits a creator to the search term from the newest run they appeared in, not the one that first found them; creators outside every saved top 10 show as "unknown"; and a blank channel ID is accepted.
+- **5.7** Cache and candidates files are trusted as written. A wrong or hand-edited file fails with an unclear error.
+- **5.8** The "tidy group of three" tell also flags some two-item lists after a greeting, such as "Hi Ashton, Reels and Shorts clips".
+- **5.9** Removing emoji from a title misses skin-tone marks, flags and keycaps, which can leave a stray character in the core title.
+- **5.10** Hype words or topic keywords that start or end with a symbol, such as "100%" or "c++", never match. None of the current ones do.
+- **5.11** The "in today's fast-paced" tell matches only a straight apostrophe, not a curly one.
+- **5.13** An inline comment after a config line (`phrase | topic # note`) becomes part of the value.
+- **5.21** The AI-tells spec covers 6 of the 15 patterns.
+- **5.22** No spec runs a full realistic draft through both real config lists at once.
+- **5.23** The first banned-words spec mostly checks the loader against itself; only its duplicate check is meaningful.
+- **5.24** Some YouTube specs check one field of a candidate rather than the whole candidate.
+- **5.25** The outcomes parser handles Windows line endings, a byte-order mark and escaped quotes, but no spec pins them.
+
+### Next steps
 
 - Point the n8n search phrase at content workflows too.
 - Score creators on several videos: the median momentum over their last few, or two or more on-topic videos in 90 days.
