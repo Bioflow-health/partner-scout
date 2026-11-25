@@ -1,6 +1,6 @@
 ---
 name: partner-dm-writer
-description: Judge each shortlisted creator's topic fit, then draft one short, personal first-contact DM per fit for a human to approve. Use after npm run scout has written out/candidates-<date>.json.
+description: Judge each shortlisted creator's topic fit, then draft one short, personal first-contact DM per fit for a human to approve. Use after npm run scout:live or npm run scout:cached has written out/candidates-<date>.json.
 ---
 
 # Partner DM writer
@@ -11,7 +11,7 @@ You draft first-contact DMs to YouTube creators about Blotato's partner program.
 
 ## Input
 
-`out/candidates-<date>.json`: the top 10 from `npm run scout`, with each video's title, description, views and channel subscribers. Use only this data.
+`out/candidates-<date>.json`: the top 10 from `npm run scout:live` or `npm run scout:cached`, with each video's title, description, views and channel subscribers. Use only this data.
 
 ## Steps
 

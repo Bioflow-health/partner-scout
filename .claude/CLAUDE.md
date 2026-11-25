@@ -16,8 +16,9 @@ Partner Scout finds YouTube creators worth a personal partnership message and dr
 
 ## Commands
 
-- `npm run scout`: live run. Searches YouTube, saves the raw responses to `out/cache/<date>.json` (never overwritten; a second run that day gets `-2`), prints the ranked top 10, and writes `out/candidates-<date>.json` and `out/shortlist-<date>.md`.
-- `npm run scout -- --cached [path]`: re-scores the newest cache file, or the one named. No API calls, no quota.
+- `npm run scout:live`: the only command that calls the API. Searches YouTube, saves the raw responses to `out/cache/<date>.json` as they arrive (never overwritten; a second run that day gets `-2`), prints the ranked top 10, and writes `out/candidates-<date>.json` and `out/shortlist-<date>.md`.
+- `npm run scout:cached [path]`: re-scores the newest cache file, or the one named. No API calls, no quota.
+- `npm run scout` with no suffix, an unknown argument or `--help` prints the usage and exits 2. It never runs the scout.
 - `npm run shortlist`: re-renders the shortlist from `out/drafts-<date>.json` and runs the code gate on every draft. No API calls.
 - `npm run learn`: summarizes `config/outcomes.csv` (rows with channel_id `EXAMPLE` are ignored). No API calls.
 - `npm test`, `npm run typecheck`, `npm run lint`, `npm run format:check`: all must pass before a commit.
@@ -27,7 +28,7 @@ Partner Scout finds YouTube creators worth a personal partnership message and dr
 - The code reads the key only from `process.env.YOUTUBE_API_KEY` and sends it in the `x-goog-api-key` header, never in a URL.
 - Never print, log, write or commit the key. There is no `.env` file. Each user sets `YOUTUBE_API_KEY` in their own shell (see the README).
 - Budget per live run: 5 search terms or fewer. A search costs 100 units; `videos.list` and `channels.list` cost 1 unit per 50 IDs. One run is about 510 units.
-- Comparing pivots? Use `--cached` so every variant scores the same data.
+- Comparing pivots? Use `npm run scout:cached` so every variant scores the same data.
 
 ## Coding rules (from SabrinaRamonov/ai-coding-rules)
 

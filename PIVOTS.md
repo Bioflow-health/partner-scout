@@ -2,7 +2,7 @@
 
 The pressure-test log. Each entry: objective, hypothesis, result, change. Each pivot is one commit whose message says why.
 
-Unless an entry says otherwise, every result below scores the same data: `out/cache/2026-11-24.json` (one live run, 509 quota units), replayed with `npm run scout -- --cached out/cache/2026-11-24.json`. To reproduce entries 1 to 3 exactly, use `config/search-terms.txt` as of commit `460c5fd`. Pivot 3 retired two of those phrases, and a phrase missing from the config falls back to the whole-phrase rule.
+Unless an entry says otherwise, every result below scores the same data: `out/cache/2026-11-24.json` (one live run, 509 quota units), replayed with `npm run scout:cached out/cache/2026-11-24.json` (the command was `npm run scout -- --cached` when these runs were made). To reproduce entries 1 to 3 exactly, use `config/search-terms.txt` as of commit `460c5fd`. Pivot 3 retired two of those phrases, and a phrase missing from the config falls back to the whole-phrase rule.
 
 ## 0. The acceptance bar (set before any pivot)
 

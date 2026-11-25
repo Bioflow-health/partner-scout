@@ -61,20 +61,32 @@ Add your existing partners' channel IDs to `config/partners.csv` so they're neve
 ## Step 4: Run the scout
 
 ```bash
-npm run scout
+npm run scout:live
 ```
 
-It prints the top 10 and writes three files to `out/` (which git ignores):
+This is the only command that calls the YouTube API. It prints the top 10 and writes three files to `out/` (which git ignores):
 
-- `out/cache/<date>.json`: the raw API responses. A second run on the same day writes `<date>-2.json`, so nothing is overwritten.
+- `out/cache/<date>.json`: the raw API responses, saved as each one arrives. A second run on the same day writes `<date>-2.json`, so nothing is overwritten.
 - `out/candidates-<date>.json`: the top 10, for the writer.
 - `out/shortlist-<date>.md`: the shortlist, which fills in as drafts are added.
 
 To re-score saved data without any API calls or quota:
 
 ```bash
-npm run scout -- --cached
-npm run scout -- --cached out/cache/2026-11-24.json
+npm run scout:cached
+npm run scout:cached out/cache/2026-11-24.json
+```
+
+`npm run scout` on its own, an unknown argument or `--help` prints this usage and exits with code 2, so a typo never spends quota:
+
+```text
+Usage:
+  npm run scout:live                 Search YouTube (about 510 quota units), then rank and write a new run.
+  npm run scout:cached [cache-file]  Re-score a saved cache (the newest by default). No API calls.
+  npm run shortlist [run]            Render a run's shortlist (the newest run by default). No API calls.
+  npm run learn                      Summarize config/outcomes.csv. No API calls.
+
+Only scout:live spends YouTube quota.
 ```
 
 ## Step 5: Draft and check the DMs

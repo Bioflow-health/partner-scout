@@ -1,10 +1,12 @@
 import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { parseArgs, USAGE } from "./args";
 import {
   loadAiTells,
   loadBannedWords,
   loadPartners,
   loadSearchTerms,
 } from "./config";
+import type { SearchTerm } from "./config";
 import { filterCandidates, PARTNER_BAND } from "./filter";
 import { checkDraft } from "./gate";
 import { parseOutcomes, summarizeOutcomes } from "./learn";
@@ -32,7 +34,7 @@ const newestCachePath = async () => {
   );
   const newest = dated.sort((a, b) => b.modified - a.modified)[0];
   if (!newest) {
-    throw new Error(`No cache in ${CACHE_DIR}/. Run once without --cached.`);
+    throw new Error(`No cache in ${CACHE_DIR}/. Run npm run scout:live first.`);
   }
   return newest.path;
 };
@@ -112,7 +114,7 @@ const writeShortlist = async (date: string) => {
   );
   if (!candidates) {
     throw new Error(
-      `No ${OUT_DIR}/candidates-${date}.json. Run npm run scout first.`,
+      `No ${OUT_DIR}/candidates-${date}.json. Run npm run scout:cached (free) or npm run scout:live first.`,
     );
   }
   const drafts = await readJson<{ entries: DraftEntry[] }>(
@@ -203,23 +205,10 @@ const learn = async () => {
   }
 };
 
-const main = async () => {
-  if (process.argv[2] === "shortlist") {
-    await writeShortlist(today());
-    return;
-  }
-  if (process.argv[2] === "learn") {
-    await learn();
-    return;
-  }
-
-  const terms = await loadSearchTerms();
-  const cachedFlag = process.argv.indexOf("--cached");
-  const { run, source } =
-    cachedFlag === -1
-      ? await loadLiveRun(terms.map((term) => term.phrase))
-      : await loadCachedRun(process.argv[cachedFlag + 1]);
-
+const scout = async (
+  terms: SearchTerm[],
+  { run, source }: { run: RawRun; source: string },
+) => {
   const candidates = toCandidates(run);
   const { kept, dropped } = filterCandidates(candidates, {
     partners: await loadPartners(),
@@ -269,6 +258,26 @@ const main = async () => {
     `\nCandidates for the writer: ${OUT_DIR}/candidates-${date}.json`,
   );
   await writeShortlist(date);
+};
+
+const main = async () => {
+  const command = parseArgs(process.argv.slice(2));
+  if (command.kind === "usage") {
+    console.error(USAGE);
+    process.exitCode = 2;
+    return;
+  }
+  if (command.kind === "learn") return learn();
+  if (command.kind === "shortlist") {
+    return writeShortlist(command.run ?? today());
+  }
+  const terms = await loadSearchTerms();
+  return scout(
+    terms,
+    command.kind === "live"
+      ? await loadLiveRun(terms.map((term) => term.phrase))
+      : await loadCachedRun(command.path),
+  );
 };
 
 main().catch((error: unknown) => {

@@ -16,7 +16,9 @@
     "format:check": "prettier --check .",
     "scout": "tsx src/cli.ts",
     "shortlist": "tsx src/cli.ts shortlist",
-    "learn": "tsx src/cli.ts learn"
+    "learn": "tsx src/cli.ts learn",
+    "scout:live": "tsx src/cli.ts live",
+    "scout:cached": "tsx src/cli.ts cached"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
