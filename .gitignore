@@ -2,3 +2,8 @@ node_modules/
 out/
 .env
 .env.*
+
+# Local Claude Code files (per machine, never published)
+.claude/context.db
+.claude/sessions/
+.claude/settings.local.json
