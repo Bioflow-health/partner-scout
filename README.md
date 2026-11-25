@@ -178,7 +178,7 @@ The bar of 5 isn't met yet. `PIVOTS.md` explains why and what to try next.
 
 ### Known issues, not fixed yet
 
-A full review of the repo found these. Each one is small, and none blocks a safe run. The ID is the review's.
+A full review of the repo found these, and the IDs are the review's. 6.1 came later, from live test runs. Each one is small, and none blocks a safe run.
 
 - **2.1** In the drafts code, a draft's video ID is a plain string rather than the branded `VideoId` type the rest of the code uses.
 - **2.2** The number formatter is written twice, and gate failures are printed one way on screen and another way in the shortlist.
@@ -200,6 +200,7 @@ A full review of the repo found these. Each one is small, and none blocks a safe
 - **5.23** The first banned-words spec mostly checks the loader against itself; only its duplicate check is meaningful.
 - **5.24** Some YouTube specs check one field of a candidate rather than the whole candidate.
 - **5.25** The outcomes parser handles Windows line endings, a byte-order mark and escaped quotes, but no spec pins them.
+- **6.1** The checker isn't always consistent. The approved Blotato sentence ends "and connects to Claude through its MCP server." Across three runs on 2026-11-24 and 2026-11-25, the checker recorded 11 verdicts on drafts with that clause: it passed 9 and rejected 2 as a second bridge under rule 7. The rule allows the full approved sentence, so the 2 rejections were too strict. So far the errors were on the strict side, which costs a rewrite, not a bad draft. A checker that can flip on one rule could flip on others, which is one reason a human reads every draft. Planned fix: check the Blotato sentence in the code gate against `config/blotato-facts.txt`, so it no longer depends on the checker's judgment.
 
 ### Next steps
 
