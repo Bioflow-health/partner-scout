@@ -29,7 +29,7 @@ The goal is partners who can each bring in 10 new customers a month. Those are c
 ## Step 1: Install
 
 ```bash
-git clone <this repo's URL>
+git clone https://github.com/Bioflow-health/partner-scout.git
 cd partner-scout
 npm install
 npm test
