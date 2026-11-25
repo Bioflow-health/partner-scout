@@ -40,6 +40,11 @@ const newestCachePath = async () => {
 const loadCachedRun = async (requestedPath: string | undefined) => {
   const path = requestedPath ?? (await newestCachePath());
   const run = JSON.parse(await readFile(path, "utf8")) as RawRun;
+  if (run.complete === false) {
+    console.warn(
+      `Warning: ${path} is from a run that stopped early, so some videos or channels have no details.`,
+    );
+  }
   return { run, source: `cache ${path} (0 new quota units)` };
 };
 
@@ -64,12 +69,26 @@ const loadLiveRun = async (phrases: readonly string[]) => {
     );
   }
   const now = new Date();
-  const run = await fetchRun(phrases, apiKey, now);
-  const path = await saveRun(run, now.toLocaleDateString("en-CA"));
-  return {
-    run,
-    source: `YouTube API (${run.unitsUsed} quota units), saved to ${path}`,
+  let path: string | undefined;
+  const saveProgress = async (snapshot: RawRun) => {
+    if (path) await writeFile(path, JSON.stringify(snapshot, null, 2));
+    else path = await saveRun(snapshot, now.toLocaleDateString("en-CA"));
   };
+  try {
+    const run = await fetchRun(phrases, apiKey, now, {
+      onProgress: saveProgress,
+    });
+    return {
+      run,
+      source: `YouTube API (${run.unitsUsed} quota units), saved to ${path}`,
+    };
+  } catch (error) {
+    if (!path) throw error;
+    throw new Error(
+      `${error instanceof Error ? error.message : String(error)}\nThe responses received so far are saved in ${path}. Replay them without new quota.`,
+      { cause: error },
+    );
+  }
 };
 
 const formatCount = (value: number) => value.toLocaleString("en-US");

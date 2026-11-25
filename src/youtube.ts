@@ -35,27 +35,41 @@ export type RawRun = {
   fetchedAt: string;
   publishedAfter: string;
   unitsUsed: number;
+  complete?: boolean;
   searches: { term: string; response: SearchResponse }[];
   videos: VideosResponse[];
   channels: ChannelsResponse[];
 };
 
+export type FetchOptions = {
+  fetchImpl?: typeof fetch;
+  onProgress?: (run: RawRun) => Promise<void> | void;
+};
+
+const TIMEOUT_MS = 15_000;
+
+const isRetryable = (status: number, body: string) =>
+  (status === 429 || status >= 500) && !body.includes("quotaExceeded");
+
 const get = async <T>(
+  fetchImpl: typeof fetch,
   endpoint: string,
   params: Record<string, string>,
   apiKey: string,
 ): Promise<T> => {
-  const response = await fetch(
-    `${API_BASE}/${endpoint}?${new URLSearchParams(params)}`,
-    { headers: { "x-goog-api-key": apiKey } },
-  );
-  if (!response.ok) {
+  const url = `${API_BASE}/${endpoint}?${new URLSearchParams(params)}`;
+  for (let attempt = 1; ; attempt += 1) {
+    const response = await fetchImpl(url, {
+      headers: { "x-goog-api-key": apiKey },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (response.ok) return (await response.json()) as T;
     const body = await response.text();
+    if (attempt === 1 && isRetryable(response.status, body)) continue;
     throw new Error(
       `YouTube ${endpoint} failed: HTTP ${response.status} ${body.slice(0, 300)}`,
     );
   }
-  return (await response.json()) as T;
 };
 
 const inPages = <T>(items: readonly T[]): T[][] =>
@@ -67,70 +81,82 @@ export const fetchRun = async (
   terms: readonly string[],
   apiKey: string,
   now: Date,
+  { fetchImpl = fetch, onProgress = () => {} }: FetchOptions = {},
 ): Promise<RawRun> => {
   const publishedAfter = new Date(
     now.getTime() - WINDOW_DAYS * DAY_MS,
   ).toISOString();
+  const run: RawRun = {
+    fetchedAt: now.toISOString(),
+    publishedAfter,
+    unitsUsed: 0,
+    complete: false,
+    searches: [],
+    videos: [],
+    channels: [],
+  };
 
-  const searches = await Promise.all(
-    terms.map(async (term) => ({
-      term,
-      response: await get<SearchResponse>(
-        "search",
-        {
-          part: "snippet",
-          type: "video",
-          q: term,
-          publishedAfter,
-          maxResults: String(PAGE_SIZE),
-        },
-        apiKey,
-      ),
-    })),
-  );
+  for (const term of terms) {
+    const response = await get<SearchResponse>(
+      fetchImpl,
+      "search",
+      {
+        part: "snippet",
+        type: "video",
+        q: term,
+        publishedAfter,
+        maxResults: String(PAGE_SIZE),
+      },
+      apiKey,
+    );
+    run.searches.push({ term, response });
+    run.unitsUsed += UNITS.search;
+    await onProgress(run);
+  }
 
   const videoIds = [
     ...new Set(
-      searches.flatMap(({ response }) =>
+      run.searches.flatMap(({ response }) =>
         response.items.map((item) => item.id.videoId),
       ),
     ),
   ];
-  const videos = await Promise.all(
-    inPages(videoIds).map((ids) =>
-      get<VideosResponse>(
+  for (const ids of inPages(videoIds)) {
+    run.videos.push(
+      await get<VideosResponse>(
+        fetchImpl,
         "videos",
         { part: "snippet,statistics", id: ids.join(",") },
         apiKey,
       ),
-    ),
-  );
+    );
+    run.unitsUsed += UNITS.list;
+    await onProgress(run);
+  }
 
   const channelIds = [
     ...new Set(
-      videos.flatMap((page) => page.items.map((v) => v.snippet.channelId)),
+      run.videos.flatMap((page) =>
+        page.items.map((video) => video.snippet.channelId),
+      ),
     ),
   ];
-  const channels = await Promise.all(
-    inPages(channelIds).map((ids) =>
-      get<ChannelsResponse>(
+  for (const ids of inPages(channelIds)) {
+    run.channels.push(
+      await get<ChannelsResponse>(
+        fetchImpl,
         "channels",
         { part: "statistics", id: ids.join(",") },
         apiKey,
       ),
-    ),
-  );
+    );
+    run.unitsUsed += UNITS.list;
+    await onProgress(run);
+  }
 
-  return {
-    fetchedAt: now.toISOString(),
-    publishedAfter,
-    unitsUsed:
-      searches.length * UNITS.search +
-      (videos.length + channels.length) * UNITS.list,
-    searches,
-    videos,
-    channels,
-  };
+  run.complete = true;
+  await onProgress(run);
+  return run;
 };
 
 export const toCandidates = (run: RawRun): Candidate[] => {
