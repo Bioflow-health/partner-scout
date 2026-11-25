@@ -1,6 +1,7 @@
 import { draftHash } from "./checks";
 import type { CheckVerdict } from "./checks";
-import type { GateResult } from "./gate";
+import { checkDraft } from "./gate";
+import type { GateConfig, GateResult } from "./gate";
 import type { Scored } from "./score";
 import { escapeMarkdown } from "./text";
 
@@ -29,6 +30,28 @@ export type ShortlistRow = {
   gates: GateResult[];
   verdicts: CheckVerdict[];
 };
+
+export const buildRows = (
+  candidates: readonly Scored[],
+  drafts: readonly DraftEntry[],
+  verdicts: readonly CheckVerdict[],
+  gateConfig: GateConfig,
+): ShortlistRow[] =>
+  candidates.map((candidate, index) => {
+    const entry = drafts.find((e) => e.videoId === candidate.videoId);
+    return {
+      rank: index + 1,
+      candidate,
+      entry,
+      gates: (entry?.attempts ?? []).map((attempt) =>
+        checkDraft(
+          { text: attempt.draft, videoTitle: candidate.videoTitle },
+          gateConfig,
+        ),
+      ),
+      verdicts: verdicts.filter((v) => v.videoId === candidate.videoId),
+    };
+  });
 
 export const orphanedDrafts = (
   draftVideoIds: readonly string[],

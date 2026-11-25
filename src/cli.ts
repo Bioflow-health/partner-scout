@@ -13,12 +13,16 @@ import { draftHash, parseChecks, recordVerdict } from "./checks";
 import { parseDrafts } from "./drafts";
 import { newestFile, writeNew } from "./files";
 import { filterCandidates, PARTNER_BAND } from "./filter";
-import { checkDraft } from "./gate";
 import { parseOutcomes, summarizeOutcomes } from "./learn";
 import { rankByMomentum } from "./score";
 import type { Scored } from "./score";
-import { entryStatus, orphanedDrafts, renderShortlist } from "./shortlist";
-import type { DraftEntry, ShortlistRow } from "./shortlist";
+import {
+  buildRows,
+  entryStatus,
+  orphanedDrafts,
+  renderShortlist,
+} from "./shortlist";
+import type { DraftEntry } from "./shortlist";
 import type { ChannelId } from "./types";
 import { fetchRun, toCandidates } from "./youtube";
 import type { RawRun } from "./youtube";
@@ -146,21 +150,7 @@ const writeShortlist = async (run: string) => {
     bannedWords: await loadBannedWords(),
     aiTells: await loadAiTells(),
   };
-  const rows: ShortlistRow[] = candidates.entries.map((candidate, index) => {
-    const entry = drafts.find((e) => e.videoId === candidate.videoId);
-    return {
-      rank: index + 1,
-      candidate,
-      entry,
-      gates: (entry?.attempts ?? []).map((attempt) =>
-        checkDraft(
-          { text: attempt.draft, videoTitle: candidate.videoTitle },
-          gateConfig,
-        ),
-      ),
-      verdicts: verdicts.filter((v) => v.videoId === candidate.videoId),
-    };
-  });
+  const rows = buildRows(candidates.entries, drafts, verdicts, gateConfig);
   const path = await writeNew(
     OUT_DIR,
     `shortlist-${run}`,

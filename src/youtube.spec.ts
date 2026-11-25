@@ -115,6 +115,43 @@ describe("toCandidates", () => {
       ["v1", "blotato"],
     ]);
   });
+
+  test("joins videos and channels spread over several pages, as in a real run", () => {
+    const run: RawRun = {
+      ...makeRun({ blotato: ["v1", "v2"] }, [], []),
+      videos: [
+        { items: [video("v1", "c1", { viewCount: "100" })] },
+        { items: [video("v2", "c2", { viewCount: "200" })] },
+      ],
+      channels: [
+        { items: [channel("c2", visible("2000"))] },
+        { items: [channel("c1", visible("1000"))] },
+      ],
+    };
+
+    expect(toCandidates(run)).toEqual([
+      {
+        videoId: "v1" as VideoId,
+        videoTitle: "Title of v1",
+        description: "Description of v1",
+        views: 100,
+        channelId: "c1" as ChannelId,
+        channelTitle: "Name of c1",
+        subscribers: 1_000,
+        searchTerm: "blotato",
+      },
+      {
+        videoId: "v2" as VideoId,
+        videoTitle: "Title of v2",
+        description: "Description of v2",
+        views: 200,
+        channelId: "c2" as ChannelId,
+        channelTitle: "Name of c2",
+        subscribers: 2_000,
+        searchTerm: "blotato",
+      },
+    ]);
+  });
 });
 
 const NOW = new Date("2026-11-24T12:00:00Z");

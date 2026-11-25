@@ -3,7 +3,12 @@ import { draftHash } from "./checks";
 import type { CheckVerdict } from "./checks";
 import { makeCandidate } from "./fixtures";
 import type { GateResult } from "./gate";
-import { entryStatus, orphanedDrafts, renderShortlist } from "./shortlist";
+import {
+  buildRows,
+  entryStatus,
+  orphanedDrafts,
+  renderShortlist,
+} from "./shortlist";
 import type { DraftEntry, ShortlistRow } from "./shortlist";
 import type { ChannelId, VideoId } from "./types";
 
@@ -412,6 +417,58 @@ describe("renderShortlist", () => {
       "**Earlier attempt 1, sent back to the writer**",
       "- Code gate: fail (em-dash: em dashes: 1)",
       "- Checker: fail. rule 5: praise",
+    ]);
+  });
+});
+
+describe("buildRows", () => {
+  const gateConfig = { bannedWords: ["epic"], aiTells: [] };
+  const first =
+    'Hi, in "Clip streams live", one skill clips a stream. That was epic. Would you be open to hearing about the partner program?';
+  const second =
+    'Hi, in "Clip streams live", one skill clips a stream. Would you be open to hearing about the partner program?';
+
+  test("ranks candidates, matches their drafts, gates every attempt in order, and keeps only their own verdicts", () => {
+    const withDrafts = row().candidate;
+    const without = {
+      ...row({ candidateFields: { videoId: "BBBBBBBBBBB" as VideoId } })
+        .candidate,
+    };
+    const entry: DraftEntry = {
+      ...readyEntry,
+      attempts: [{ draft: first }, { draft: second }],
+    };
+    const ownVerdict = passFor(second);
+    const otherVerdict = { ...passFor(second), videoId: "BBBBBBBBBBB" };
+
+    expect(
+      buildRows(
+        [withDrafts, without],
+        [entry],
+        [ownVerdict, otherVerdict],
+        gateConfig,
+      ),
+    ).toEqual([
+      {
+        rank: 1,
+        candidate: withDrafts,
+        entry,
+        gates: [
+          {
+            pass: false,
+            failures: [{ rule: "banned-word", detail: '"epic"' }],
+          },
+          { pass: true, failures: [] },
+        ],
+        verdicts: [ownVerdict],
+      },
+      {
+        rank: 2,
+        candidate: without,
+        entry: undefined,
+        gates: [],
+        verdicts: [otherVerdict],
+      },
     ]);
   });
 });
