@@ -121,6 +121,8 @@ Open `out/shortlist-<run>.md`. For each ready draft, watch the video first, then
 
 `npm run shortlist` also writes `out/shortlist-<run>.csv` next to the Markdown file, one row per creator, for a spreadsheet; its empty `decision` column is where you write approve or skip.
 
+[Real output from a live run on 2026-11-25](examples/shortlist-2026-11-25.csv) (509 quota units, ready 5 | skipped 5). Nothing was sent, and the creators in it haven't been contacted.
+
 ## Step 7: Log outcomes and learn
 
 Each time a creator reaches a stage, add a row to `config/outcomes.csv`:
