@@ -273,4 +273,83 @@ describe("checkDraft", () => {
       });
     });
   });
+
+  describe("title loophole", () => {
+    test("requires the title inside quotes: an unquoted mention of a one-word title does not count", () => {
+      const text =
+        "Hi, Blotato schedules posts from one place. Would you be open to hearing about a partner program?";
+
+      expect(checkDraft({ text, videoTitle: "Blotato" }, config)).toEqual({
+        pass: false,
+        failures: [
+          { rule: "missing-video-title", detail: 'title not found: "Blotato"' },
+        ],
+      });
+    });
+
+    test("accepts a quoted one-word title", () => {
+      const text = CLEAN.replace(TITLE, "Blotato");
+
+      expect(checkDraft({ text, videoTitle: "Blotato" }, config)).toEqual({
+        pass: true,
+        failures: [],
+      });
+    });
+
+    test("accepts curly quotes around the title", () => {
+      const text = CLEAN.replace(`"${TITLE}"`, `“${TITLE}”`);
+
+      expect(checkDraft({ text, videoTitle: TITLE }, config)).toEqual({
+        pass: true,
+        failures: [],
+      });
+    });
+
+    test("ignores a core shorter than 2 words and requires the full title instead", () => {
+      const text = CLEAN.replace(TITLE, "AI");
+
+      expect(
+        checkDraft({ text, videoTitle: "AI | Build agents" }, config),
+      ).toEqual({
+        pass: false,
+        failures: [
+          {
+            rule: "missing-video-title",
+            detail: 'title not found: "AI | Build agents"',
+          },
+        ],
+      });
+    });
+
+    test.each([
+      {
+        core: "Clipping Tips",
+        title: "Clipping Tips | part two",
+        accepted: true,
+      },
+      { core: "Reels Guide", title: "Reels Guide | part two", accepted: false },
+    ])(
+      "counts a 2-word core only from 12 characters: $core is accepted: $accepted",
+      ({ core, title, accepted }) => {
+        const text = CLEAN.replace(TITLE, core);
+
+        expect(checkDraft({ text, videoTitle: title }, config).pass).toBe(
+          accepted,
+        );
+      },
+    );
+
+    test("removes only the quoted title, so a short title cannot hide text inside other words", () => {
+      const text = `I hope this email finds you well. ${CLEAN.replace(TITLE, "AI | Build agents")}`;
+
+      expect(
+        checkDraft({ text, videoTitle: "AI | Build agents" }, config),
+      ).toEqual({
+        pass: false,
+        failures: [
+          { rule: "ai-tell", detail: '"I hope this email finds you well"' },
+        ],
+      });
+    });
+  });
 });

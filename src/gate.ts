@@ -26,24 +26,39 @@ const EMOJI = /[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu;
 
 const occurrences = (text: string, mark: string) => text.split(mark).length - 1;
 
+const CORE_MIN_WORDS = 2;
+const CORE_MIN_CHARACTERS = 12;
+
 const coreTitle = (title: string) =>
   (title.split(" | ")[0] ?? title)
     .replace(EMOJI, "")
     .replace(/\s+/g, " ")
     .trim();
 
+const usableCore = (fullTitle: string) => {
+  const core = coreTitle(fullTitle);
+  return core !== fullTitle &&
+    core.split(" ").length >= CORE_MIN_WORDS &&
+    [...core].length >= CORE_MIN_CHARACTERS
+    ? core
+    : undefined;
+};
+
+const quotedTitle = (title: string, flags: string) =>
+  new RegExp(`["“]\\s*${escapeRegExp(title)}[.,]?\\s*["”]`, flags);
+
 export const checkDraft = (
   { text, videoTitle }: Draft,
   { bannedWords, aiTells }: GateConfig,
 ): GateResult => {
   const fullTitle = videoTitle.trim();
-  const core = coreTitle(fullTitle);
-  const titles = [...new Set([fullTitle, core])].filter((t) => t !== "");
-  const namesVideo = titles.some((t) =>
-    text.toLowerCase().includes(t.toLowerCase()),
+  const core = usableCore(fullTitle);
+  const titles = [fullTitle, core].filter(
+    (t): t is string => t !== undefined && t !== "",
   );
+  const namesVideo = titles.some((t) => quotedTitle(t, "i").test(text));
   const body = titles.reduce(
-    (remaining, t) => remaining.replace(new RegExp(escapeRegExp(t), "gi"), " "),
+    (remaining, t) => remaining.replace(quotedTitle(t, "gi"), " "),
     text,
   );
   const words = text.split(/\s+/).filter(Boolean).length;
@@ -68,10 +83,9 @@ export const checkDraft = (
   if (!namesVideo) {
     failures.push({
       rule: "missing-video-title",
-      detail:
-        core === fullTitle
-          ? `title not found: "${videoTitle}"`
-          : `title not found: "${videoTitle}" or its core "${core}"`,
+      detail: core
+        ? `title not found: "${videoTitle}" or its core "${core}"`
+        : `title not found: "${videoTitle}"`,
     });
   }
   if (questions !== 1) {
